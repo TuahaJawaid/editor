@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { ChildOf, Computed, Name, Playback } from '../traits';
+import { Cache, ChildOf, Computed, Name, Playback } from '../traits';
+import { store } from '../world/store';
 import { isStage, isScene } from './predicates';
 // Direct module, not the utils barrel: utils/time reaches back into this file.
 import { sortByItemIndex } from '../utils/sort';
@@ -27,6 +28,31 @@ export function getParentNode(entity: Entity | null | undefined): Entity | null 
 	const parent = getParentEntity(entity);
 	if (parent === null || isStage(parent)) return null;
 	return parent;
+}
+
+const NO_CONTAINERS: Entity[] = [];
+
+/**
+ * The `<clipPath>`s and `<mask>`s cutting `node`: its own, then the masks
+ * limiting its effects. The nodes under them are placed in `node`'s space and
+ * time, and each container carries `node`'s matrix and clock for them (see
+ * the transform and playback systems), so a walk that places a node's
+ * children places these too.
+ */
+export function getMaskContainers(world: World, node: Entity): Entity[] {
+	const cache = store(world, Cache);
+	const nid = node.id();
+	const clipPaths = cache.clipPaths[nid];
+	const masks = cache.masks[nid];
+	const effects = cache.effects[nid];
+	if (!clipPaths?.length && !masks?.length && !effects?.length) return NO_CONTAINERS;
+
+	const containers = [...clipPaths ?? [], ...masks ?? []];
+	for (const effect of effects ?? []) {
+		const limits = cache.masks[effect.id()];
+		if (limits?.length) containers.push(...limits);
+	}
+	return containers;
 }
 
 /**

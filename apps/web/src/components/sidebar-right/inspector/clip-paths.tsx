@@ -23,13 +23,11 @@ type ClipPathsSettingsProps = {
 };
 
 /**
- * The clip path children of the selected node (`<rect clipPath>`,
- * `<ellipse clipPath>`, `<polygon clipPath>`, `<path clipPath>`): the shapes it is clipped to
- * (several intersect). A clip path is a shape like any other, so it
- * has no inspector of its own — a row selects it and the transform, time and
- * appearance panels are then its own. The plus picks up the clip path tool,
- * whose bar over the canvas turns the shapes selected there into clip paths
- * of this node.
+ * The `<clipPath>`s of the selected node, one row each (several intersect).
+ * A clip path is the shapes under it and has no inspector of its own: a row
+ * selects its shapes, whose transform, time and appearance panels are then
+ * the ones shown. The plus picks up the clip path tool, whose bar over the
+ * canvas puts the shapes selected there into a new clip path of this node.
  */
 export function ClipPathsSettings(props: ClipPathsSettingsProps) {
   const world = useWorld();
@@ -61,7 +59,7 @@ export function ClipPathsSettings(props: ClipPathsSettingsProps) {
         {(clipPath) => (
           <ClipPathRow
             clipPath={clipPath}
-            onSelect={() => editor.select(clipPath)}
+            onSelect={() => editor.select(clipPath.get(Cache)?.children ?? [])}
             onRemove={() => editor.remove(clipPath)}
           />
         )}

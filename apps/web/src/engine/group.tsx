@@ -10,7 +10,6 @@ import {
 	FrameRate,
 	Geometry,
 	Group,
-	IsClipPath,
 	Position,
 	Scene,
 	Selected,
@@ -27,11 +26,12 @@ import {
 	getNextName,
 	getParentEntity,
 	getTimelineOrigin,
+	isClipShape,
 	multiply2D,
 	store,
 	translate2D,
 } from '@diffusionstudio/runtime';
-import { Not, Or } from 'koota';
+import { Or } from 'koota';
 
 import { getDocumentEditor } from './editor';
 import { editTransform } from './input/interactions';
@@ -72,7 +72,7 @@ function isIdentity(mat: Mat2D): boolean {
  */
 export function groupSelection(world: World): void {
 	const editor = getDocumentEditor(world);
-	const selected = new Set(world.query(Selected, NODES, Not(IsClipPath)));
+	const selected = new Set([...world.query(Selected, NODES)].filter((entity) => !isClipShape(entity)));
 	const first = [...selected][0];
 	if (!first) return;
 
@@ -102,7 +102,7 @@ export function groupSelection(world: World): void {
  */
 export function wrapSelectionInSequence(world: World): void {
 	const editor = getDocumentEditor(world);
-	const selected = [...world.query(Selected, NODES, Not(IsClipPath))];
+	const selected = [...world.query(Selected, NODES)].filter((entity) => !isClipShape(entity));
 	if (!selected.length) return;
 
 	const sequence = editor.wrap(selected, () => <SequenceElement name={getNextName(world, 'Sequence')} />);
@@ -115,7 +115,7 @@ export function wrapSelectionInSequence(world: World): void {
 /** The children of `entity` that are nodes of the container, in file order. */
 function nodeChildren(world: World, entity: Entity): Entity[] {
 	return getEntityChildren(world, entity).filter(
-		(child) => (child.has(Geometry) || child.has(Group) || child.has(AdjustmentLayer)) && !child.has(IsClipPath),
+		(child) => child.has(Geometry) || child.has(Group) || child.has(AdjustmentLayer),
 	);
 }
 
@@ -175,7 +175,7 @@ function measure(world: World, entities: Entity[]): { minX: number; minY: number
  */
 export function wrapSelectionInScene(world: World): void {
 	const editor = getDocumentEditor(world);
-	const selected = new Set(world.query(Selected, NODES, Not(IsClipPath)));
+	const selected = new Set([...world.query(Selected, NODES)].filter((entity) => !isClipShape(entity)));
 	const first = [...selected][0];
 	if (!first) return;
 

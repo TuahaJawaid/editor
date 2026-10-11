@@ -11,7 +11,7 @@ import { Not, Or } from 'koota';
 import { store } from '../world/store';
 import {
 	ChildOf, Cache,
-	Geometry, Group, AdjustmentLayer, IsClipPath, Mask, Paint, Stroke, Shadow, Effect,
+	Geometry, Group, AdjustmentLayer, ClipPath, Mask, Paint, Stroke, Shadow, Effect,
 	TextRange, KeyframeTrack, Keyframe, Animation,
 } from '../traits';
 import { isStage } from '../queries/predicates';
@@ -39,12 +39,12 @@ export function rebuildCaches(world: World, entity: Entity, parent: Entity | nul
 
 	if (entity.has(Geometry) || entity.has(Group) || entity.has(AdjustmentLayer)) {
 		cache.children[pid] = collect(
-			Or(Geometry, Group, AdjustmentLayer), ChildOf(parent), Not(IsClipPath),
+			Or(Geometry, Group, AdjustmentLayer), ChildOf(parent),
 		).sort(sortByItemIndex);
 	}
 
-	if (entity.has(IsClipPath)) {
-		cache.clipPaths[pid] = collect(Geometry, IsClipPath, ChildOf(parent))
+	if (entity.has(ClipPath)) {
+		cache.clipPaths[pid] = collect(ClipPath, ChildOf(parent))
 			.sort(sortByItemIndex);
 	}
 
@@ -136,28 +136,6 @@ export function evictFromCaches(world: World, entity: Entity, parent: Entity | n
 			}
 		}
 	}
-}
-
-/**
- * Move an attached geometry between its parent's `children` and `clipPaths` when
- * its `IsClipPath` tag is toggled in place. `rebuildCaches` files by trait on
- * attach; here the queries cannot be trusted (koota fires onRemove before the
- * tag is cleared), so the two lists are edited by hand.
- */
-export function refileClipPath(world: World, entity: Entity, parent: Entity | null, clipPath: boolean): void {
-	if (parent === null || isStage(parent)) return;
-	if (!parent.has(Cache)) parent.add(Cache);
-
-	const cache = store(world, Cache);
-	const pid = parent.id();
-	const without = (list: Entity[] | undefined) => (list ?? []).filter((e) => e !== entity);
-
-	const clipPaths = without(cache.clipPaths[pid]);
-	const children = without(cache.children[pid]);
-	(clipPath ? clipPaths : children).push(entity);
-
-	cache.clipPaths[pid] = clipPaths.sort(sortByItemIndex);
-	cache.children[pid] = children.sort(sortByItemIndex);
 }
 
 function isNodeEntity(entity: Entity): boolean {

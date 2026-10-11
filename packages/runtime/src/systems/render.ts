@@ -17,7 +17,7 @@ import {
 	TransitionType,
 } from '../constants';
 import {
-	ChildOf, Hidden, Culled, Interactive, IsClipPath, AssetId,
+	ChildOf, Hidden, Culled, Interactive, AssetId,
 	ClipsContent, Geometry, Group, Paint, Color, Caption, ScaleMode, Shader,
 	BlendMode, Effect, Mask, Transition, MixedCornerRadius, PointCount, EvenOdd,
 	LocalTransform, WorldTransform, Computed, Cache,
@@ -76,6 +76,12 @@ let shapeFillRule: CanvasFillRule = 'nonzero';
  */
 export function drawShapePath(world: World, entity: Entity): void {
 	const ctx = getCtx(world);
+	ctx.beginPath();
+	traceShapePath(world, ctx, entity);
+}
+
+/** Adds the outline `drawShapePath` draws to `ctx` as subpaths of its current path. */
+function traceShapePath(world: World, ctx: CanvasPath, entity: Entity): void {
 	const computed = store(world, Computed);
 	const eid = entity.id();
 	const w = computed.width[eid]!;
@@ -84,7 +90,6 @@ export function drawShapePath(world: World, entity: Entity): void {
 	const type = entity.has(Geometry) ? store(world, Geometry).value[eid]! : GeometryType.RECT;
 	shapeFillRule = 'nonzero';
 	if (type === GeometryType.PATH) {
-		ctx.beginPath();
 		const geometry = getDrawnPath(world, entity);
 		if (geometry !== null) tracePath(ctx, geometry, getPathTransform(world, entity));
 		if (entity.has(EvenOdd)) shapeFillRule = 'evenodd';
@@ -92,7 +97,6 @@ export function drawShapePath(world: World, entity: Entity): void {
 	}
 	if (type !== GeometryType.RECT && isShapeGeometry(type)) {
 		const pointCount = entity.has(PointCount) ? store(world, PointCount).value[eid]! : 3;
-		ctx.beginPath();
 		traceShape(ctx, type, w, h, pointCount);
 		return;
 	}
@@ -102,8 +106,6 @@ export function drawShapePath(world: World, entity: Entity): void {
 	let tr = hasMixed ? computed.cornerRadiusTopRight[eid]! : tl;
 	let br = hasMixed ? computed.cornerRadiusBottomRight[eid]! : tl;
 	let bl = hasMixed ? computed.cornerRadiusBottomLeft[eid]! : tl;
-
-	ctx.beginPath();
 
 	if (tl === 0 && tr === 0 && br === 0 && bl === 0) {
 		ctx.rect(0, 0, w, h);
@@ -962,7 +964,7 @@ export function renderNode(world: World, entity: Entity): void {
 		});
 	}
 
-	if (entity.has(IsClipPath) || entity.has(Hidden)) return;
+	if (entity.has(Hidden)) return;
 
 	ctx.save();
 
@@ -977,12 +979,12 @@ export function renderNode(world: World, entity: Entity): void {
 	);
 
 	for (const clipPath of store(world, Cache).clipPaths[eid] ?? []) {
-		if (computed.visibility[clipPath.id()] === 0) continue;
 		clipTo(world, clipPath);
 	}
 
-	// An effect limited by a `<mask>` takes the node through layers.
+	// A `<mask>` on the node, or one limiting an effect, takes it through layers.
 	const passes = effectPasses(world, entity);
+	const masks = activeMasks(world, entity);
 
 	// Opacity and blend mode. The store slot may hold a destroyed entity's
 	// value (ids are recycled), so it is only readable behind has().
@@ -990,8 +992,8 @@ export function renderNode(world: World, entity: Entity): void {
 	const bi = entity.has(BlendMode) ? store(world, BlendMode).value[eid] ?? 0 : 0;
 	if (bi !== 0) ctx.globalCompositeOperation = COMPOSITE_OPERATIONS[bi]!;
 
-	if (passes) {
-		renderLayered(world, entity, passes);
+	if (passes || masks.length > 0) {
+		renderLayered(world, entity, passes, masks);
 	} else {
 		renderContent(world, entity, buildEffects(world, entity));
 	}
@@ -1001,27 +1003,51 @@ export function renderNode(world: World, entity: Entity): void {
 	ctx.restore();
 }
 
-/** Clips the current context to the box of `clipPath`, in world space. */
+/**
+ * Clips the current context to the outlines of the shapes under `clipPath`,
+ * each where its own transform puts it, united by the nonzero rule (a lone
+ * path keeps its own `fillRule`). One switched off, or none of whose shapes
+ * is in its time, lets go: it clips nothing.
+ */
 function clipTo(world: World, clipPath: Entity): void {
+	if (clipPath.has(Hidden)) return;
+
+	const computed = store(world, Computed);
+	const geometry = store(world, Geometry);
+	const outline = new Path2D();
+	let count = 0;
+
+	for (const shape of store(world, Cache).children[clipPath.id()] ?? []) {
+		const sid = shape.id();
+		if (computed.visibility[sid] === 0 || shape.has(Hidden) || !shape.has(Geometry)) continue;
+		if (!isShapeGeometry(geometry.value[sid])) continue;
+
+		const traced = new Path2D();
+		traceShapePath(world, traced, shape);
+		outline.addPath(traced, worldMatrix(world, shape));
+		count++;
+	}
+	if (count === 0) return;
+
+	// The outline is in device pixels; the clip outlives the transform.
 	const ctx = getCtx(world);
-	ctx.save();
-	setWorldTransform(world, ctx, clipPath);
-	drawShapePath(world, clipPath);
-	ctx.restore();
-	ctx.clip(shapeFillRule);
+	const transform = ctx.getTransform();
+	ctx.setTransform(1, 0, 0, 1, 0, 0);
+	ctx.clip(outline, count === 1 ? shapeFillRule : 'nonzero');
+	ctx.setTransform(transform);
 }
 
-function setWorldTransform(world: World, ctx: Ctx2D, entity: Entity): void {
+function worldMatrix(world: World, entity: Entity): DOMMatrix {
 	const worldTransform = store(world, WorldTransform);
 	const eid = entity.id();
-	ctx.setTransform(
+	return new DOMMatrix([
 		worldTransform.a[eid]!,
 		worldTransform.b[eid]!,
 		worldTransform.c[eid]!,
 		worldTransform.d[eid]!,
 		worldTransform.e[eid]!,
 		worldTransform.f[eid]!,
-	);
+	]);
 }
 
 /** The node's own pixels and its children on the current context, under `filter` when one is given. */
@@ -1119,17 +1145,31 @@ function effectPasses(world: World, entity: Entity): EffectPass[] | null {
 
 const NO_MATTES: Entity[] = [];
 
-/** The effect's masks that have a picture and are switched on. */
-function activeMasks(world: World, effect: Entity): Entity[] {
-	const all = store(world, Cache).masks[effect.id()];
+/**
+ * The masks under `holder` (a node or an effect) that are switched on and
+ * have a picture: a mask file, or a node under them in its time. One whose
+ * nodes are all out of their time lets go, as a clip path does.
+ */
+function activeMasks(world: World, holder: Entity): Entity[] {
+	const all = store(world, Cache).masks[holder.id()];
 	if (!all?.length) return NO_MATTES;
 
 	let active: Entity[] | null = null;
 	for (const mask of all) {
-		if (mask.has(Hidden) || !mask.has(AssetId)) continue;
+		if (mask.has(Hidden)) continue;
+		if (!mask.has(AssetId) && pictureNodes(world, mask).length === 0) continue;
 		(active ??= []).push(mask);
 	}
 	return active ?? NO_MATTES;
+}
+
+/** The nodes under `mask` that draw its picture this frame. */
+function pictureNodes(world: World, mask: Entity): Entity[] {
+	const children = store(world, Cache).children[mask.id()];
+	if (!children?.length) return NO_MATTES;
+
+	const visibility = store(world, Computed).visibility;
+	return children.filter((child) => visibility[child.id()] !== 0 && !child.has(Hidden));
 }
 
 // ── Layers ───────────────────────────────────────────────────
@@ -1181,13 +1221,15 @@ function blit(target: Layer, source: OffscreenCanvas, operation: GlobalComposite
 const IDENTITY = new DOMMatrix();
 
 /**
- * Draws the node through layers: its content unfiltered onto one, then
- * each effect pass from one layer to the next (a filter run is a filtered
- * copy; a masked effect combines the copy with the unfiltered picture by
- * its masks' coverage), and the layer lands on the surface under the
- * node's opacity and blend mode, which the caller has already set.
+ * Draws the node through layers: its content onto one (unfiltered when
+ * effect passes follow, under its filter when none do), then each effect
+ * pass from one layer to the next (a filter run is a filtered copy; a masked
+ * effect combines the copy with the unfiltered picture by its masks'
+ * coverage), then its own masks cut what that left, and the layer lands on
+ * the surface under the node's opacity and blend mode, which the caller has
+ * already set.
  */
-function renderLayered(world: World, entity: Entity, passes: EffectPass[]): void {
+function renderLayered(world: World, entity: Entity, passes: EffectPass[] | null, masks: Entity[]): void {
 	const ctx = getCtx(world);
 	const surface = world.get(RenderSurface)!.canvas!;
 	const base = layerDepth;
@@ -1196,18 +1238,23 @@ function renderLayered(world: World, entity: Entity, passes: EffectPass[]): void
 	try {
 		let front = acquireLayer(surface.width, surface.height);
 		resetLayer(front, local);
-		drawOnto(front.ctx, () => renderContent(world, entity, null));
+		const effects = passes ? null : buildEffects(world, entity);
+		drawOnto(front.ctx, () => renderContent(world, entity, effects));
 
-		let back = acquireLayer(surface.width, surface.height);
-		for (const pass of passes) {
-			if (pass.kind === 'filter') {
-				resetLayer(back, IDENTITY);
-				blit(back, front.canvas, 'source-over', pass.filter);
-			} else {
-				applyMaskedEffect(world, entity, pass, front, back, local);
+		if (passes) {
+			let back = acquireLayer(surface.width, surface.height);
+			for (const pass of passes) {
+				if (pass.kind === 'filter') {
+					resetLayer(back, IDENTITY);
+					blit(back, front.canvas, 'source-over', pass.filter);
+				} else {
+					applyMaskedEffect(world, entity, pass, front, back, local);
+				}
+				[front, back] = [back, front];
 			}
-			[front, back] = [back, front];
 		}
+
+		if (masks.length > 0) applyMasks(world, entity, masks, front, local);
 
 		ctx.save();
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1239,7 +1286,7 @@ function applyMaskedEffect(world: World, entity: Entity, pass: Extract<EffectPas
 		coverage.ctx.fill(shapeFillRule);
 		for (const mask of pass.masks) {
 			const strength = Math.min(1, Math.max(0, opacities[mask.id()] ?? 1));
-			if (strength <= EPSILON || !drawMaskRemoval(world, entity, mask, scratch, local)) continue;
+			if (strength <= EPSILON || !drawMaskRemoval(world, entity, mask, scratch, local, true)) continue;
 			blit(coverage, scratch.canvas, 'destination-out', 'none', strength);
 		}
 
@@ -1257,43 +1304,89 @@ function applyMaskedEffect(world: World, entity: Entity, pass: Extract<EffectPas
 }
 
 /**
- * Draws onto `layer` what `mask` takes away from the node: the node's box
- * less the mask's picture, or the picture itself when the mask is
- * inverted, fitted into the box the way the node fits its footage so it lands
- * on the frame it was made from, and softened by the mask's blur. A mask
- * file's picture is its outline, filled at the size it lands at so its edge
- * stays sharp at any scale, smoothed as much as the mask asks. False, and nothing drawn, while the picture's frame is not decoded yet.
+ * The node's own masks cut from `front`, which keeps only what all of them
+ * cover: each takes away what its picture does not cover (or, inverted, what
+ * it does), weighted by the mask's opacity. Unlike an effect's masks they
+ * are not held to the node's box, so a group is cut as a whole.
  */
-function drawMaskRemoval(world: World, entity: Entity, mask: Entity, layer: Layer, local: DOMMatrix): boolean {
+function applyMasks(world: World, entity: Entity, masks: Entity[], front: Layer, local: DOMMatrix): void {
+	const { width, height } = front.canvas;
+	const coverage = acquireLayer(width, height);
+	const scratch = acquireLayer(width, height);
+	const opacities = store(world, Computed).opacity;
+
+	try {
+		resetLayer(coverage, IDENTITY);
+		coverage.ctx.fillStyle = '#000000';
+		coverage.ctx.fillRect(0, 0, width, height);
+		for (const mask of masks) {
+			const strength = Math.min(1, Math.max(0, opacities[mask.id()] ?? 1));
+			if (strength <= EPSILON || !drawMaskRemoval(world, entity, mask, scratch, local, false)) continue;
+			blit(coverage, scratch.canvas, 'destination-out', 'none', strength);
+		}
+
+		blit(front, coverage.canvas, 'destination-in');
+	} finally {
+		layerDepth -= 2;
+	}
+}
+
+/**
+ * Draws onto `layer` what `mask` takes away from the node: everything (or,
+ * when `bounded`, the node's box) less the mask's picture, or the picture
+ * itself when the mask is inverted, softened by the mask's blur. The picture
+ * is the nodes under the mask, drawn where their transforms put them and
+ * read by their alpha, or else its mask file: fitted into the
+ * box the way the node fits its footage so it lands on the frame it was
+ * made from, and filled as an outline at the size it lands at so its edge
+ * stays sharp at any scale, smoothed as much as the mask asks. False, and
+ * nothing drawn, while the file's frame is not decoded yet.
+ */
+function drawMaskRemoval(world: World, entity: Entity, mask: Entity, layer: Layer, local: DOMMatrix, bounded: boolean): boolean {
 	const computed = store(world, Computed);
-	const eid = entity.id();
+	const masks = store(world, Mask);
 	const mid = mask.id();
+	const feather = computed.blur[mid] ?? 0;
+	const inverted = masks.inverted[mid] ?? false;
+
+	const nodes = pictureNodes(world, mask);
+	if (nodes.length > 0) {
+		const { width, height } = layer.canvas;
+		const picture = acquireLayer(width, height);
+		try {
+			resetLayer(picture, local);
+			drawOnto(picture.ctx, () => {
+				for (const node of nodes) renderNode(world, node);
+			});
+			const { ctx } = layer;
+			beginRemoval(world, entity, layer, local, inverted, bounded);
+			if (feather > EPSILON) ctx.filter = `blur(${feather}px)`;
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
+			ctx.drawImage(picture.canvas, 0, 0);
+			ctx.restore();
+		} finally {
+			layerDepth--;
+		}
+		return true;
+	}
+
+	const eid = entity.id();
 	const w = computed.width[eid]!;
 	const h = computed.height[eid]!;
 
 	const decoder = resolveVideoDecoder(world, mask);
-	const smoothing = store(world, Mask).smoothing[mid] ?? DEFAULT_MASK_SMOOTHING;
+	const smoothing = masks.smoothing[mid] ?? DEFAULT_MASK_SMOOTHING;
 	const outline = decoder instanceof MaskDecoder ? decoder.getOutline(smoothing) : null;
 	const frame = outline ? null : decoder?.toBitmap();
 	const picture = outline ?? frame;
 	if (!picture) return false;
 
-	const feather = computed.blur[mid] ?? 0;
-	const inverted = store(world, Mask).inverted[mid] ?? false;
 	const source = findGeometryAssetSource(world, entity);
 	const mode = (source && store(world, ScaleMode).value[source.id()]) ?? ScaleModeType.COVER;
 	const [dx, dy, sw, sh] = getScaledImageProps(mode, picture.width, picture.height, w, h);
 
 	const { ctx } = layer;
-	resetLayer(layer, local);
-	ctx.save();
-	drawOnto(ctx, () => drawShapePath(world, entity));
-	if (!inverted) {
-		ctx.fillStyle = '#000000';
-		ctx.fill(shapeFillRule);
-	}
-	ctx.clip(shapeFillRule);
-	ctx.globalCompositeOperation = inverted ? 'source-over' : 'destination-out';
+	beginRemoval(world, entity, layer, local, inverted, bounded);
 	if (feather > EPSILON) ctx.filter = `blur(${feather}px)`;
 	if (outline) {
 		// The path is placed in the box rather than the context scaled, so the
@@ -1308,6 +1401,30 @@ function drawMaskRemoval(world: World, entity: Entity, mask: Entity, layer: Laye
 	}
 	ctx.restore();
 	return true;
+}
+
+/**
+ * Clears `layer` under `local` and saves its state, ready for a mask's
+ * picture to be drawn as what the mask takes away: over a fill of
+ * everything (or of the node's box, which then also clips, when `bounded`)
+ * that the picture is cut from, or onto nothing when `inverted`, where the
+ * picture is itself what goes. The caller draws and restores.
+ */
+function beginRemoval(world: World, entity: Entity, layer: Layer, local: DOMMatrix, inverted: boolean, bounded: boolean): void {
+	const { ctx, canvas } = layer;
+	resetLayer(layer, local);
+	ctx.save();
+	ctx.fillStyle = '#000000';
+	if (bounded) {
+		drawOnto(ctx, () => drawShapePath(world, entity));
+		if (!inverted) ctx.fill(shapeFillRule);
+		ctx.clip(shapeFillRule);
+	} else if (!inverted) {
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.setTransform(local);
+	}
+	ctx.globalCompositeOperation = inverted ? 'source-over' : 'destination-out';
 }
 
 /**

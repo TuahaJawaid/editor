@@ -114,6 +114,7 @@ export const COMPOSITION_TAGS = [
   "stroke",
   "shadow",
   "effect",
+  "clipPath",
   "mask",
   "animation",
   "keyframeTrack",

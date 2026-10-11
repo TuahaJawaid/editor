@@ -4,8 +4,9 @@
 
 import {
   AdjustmentLayer, Audio, Cache, Caption, Computed, FrameRate, Geometry,
-  Group, Hidden, IsClipPath, Opacity, PaintType, Scene, Sequential, Source,
-  SourceError, Workarea, framesToSeconds, getIntrinsicPaint, isText,
+  Group, Hidden, Opacity, PaintType, Scene, Sequential, Source,
+  SourceError, Workarea, framesToSeconds, getIntrinsicPaint, getParentEntity,
+  isClipPath, isMaskContainer, isText,
 } from "@diffusionstudio/runtime";
 
 import { resolveNode } from "../lib/nodes";
@@ -18,7 +19,8 @@ import type { ToolHandler } from "../handler";
 type Interval = { start: number; end: number };
 
 function kindOf(entity: Entity): string {
-  if (entity.has(IsClipPath)) return "clip-path";
+  const parent = getParentEntity(entity);
+  if (parent && isMaskContainer(parent)) return isClipPath(parent) ? "clip-path" : "mask";
   if (entity.has(Scene)) return "scene";
   if (entity.has(Group)) return entity.has(Sequential) ? "sequence" : "group";
   if (entity.has(AdjustmentLayer)) return "adjustment-layer";
@@ -34,15 +36,14 @@ function kindOf(entity: Entity): string {
 }
 
 // Whether the node itself puts pixels on screen. Containers don't (their
-// leaves do), adjustment layers and clip paths only shape what others draw, and a
-// scene's implicit background is exactly what a "black frame" looks like —
-// so none of those count as coverage.
+// leaves do), adjustment layers and the nodes of clip paths and masks only
+// shape what others draw, and a scene's implicit background is exactly what a
+// "black frame" looks like — so none of those count as coverage.
 function drawsPixels(entity: Entity): boolean {
   return entity.has(Geometry)
     && !entity.has(Scene)
     && !entity.has(Group)
     && !entity.has(AdjustmentLayer)
-    && !entity.has(IsClipPath)
     && !entity.has(Audio);
 }
 
@@ -128,8 +129,18 @@ function visit(entity: Entity, window: Interval | null, depth: number, state: Wa
 
   const cache = entity.get(Cache);
   for (const child of cache?.children ?? []) visit(child, visible, depth + 1, state);
-  // Clip paths are nodes worth counting and checking, but they add no pixels.
-  for (const clipPath of cache?.clipPaths ?? []) visit(clipPath, null, depth + 1, state);
+  // The nodes of clip paths and masks are worth counting and checking, but
+  // they add no pixels.
+  const containers = [
+    ...cache?.clipPaths ?? [],
+    ...cache?.masks ?? [],
+    ...(cache?.effects ?? []).flatMap((effect) => effect.get(Cache)?.masks ?? []),
+  ];
+  for (const container of containers) {
+    for (const child of container.get(Cache)?.children ?? []) {
+      visit(child, null, depth + 1, state);
+    }
+  }
 }
 
 /** The spans of `window` no coverage interval touches. */
@@ -148,62 +159,62 @@ function findGaps(window: Interval, coverage: Interval[]): Interval[] {
 }
 
 export const check: ToolHandler<"check"> = async ({ id }, ctx) => {
-    const { world } = ctx.requireSession();
-    const target = resolveNode(world, id);
-    const fps = world.get(FrameRate)?.value ?? 30;
+  const { world } = ctx.requireSession();
+  const target = resolveNode(world, id);
+  const fps = world.get(FrameRate)?.value ?? 30;
 
-    const computed = target.get(Computed)!;
+  const computed = target.get(Computed)!;
 
-    // The span the node actually plays: its bounds, narrowed by a workarea
-    // when one is set (workarea frames count from the node's start, the way
-    // the encoder and playback read them).
-    let window: Interval = { start: computed.start, end: computed.end };
-    const workarea = target.get(Workarea);
-    if (workarea) {
-      const start = Math.min(computed.end, computed.start + Math.max(0, workarea.start));
-      const end = Math.max(start, Math.min(computed.end, workarea.end ? computed.start + workarea.end : computed.end));
-      window = { start, end };
-    }
+  // The span the node actually plays: its bounds, narrowed by a workarea
+  // when one is set (workarea frames count from the node's start, the way
+  // the encoder and playback read them).
+  let window: Interval = { start: computed.start, end: computed.end };
+  const workarea = target.get(Workarea);
+  if (workarea) {
+    const start = Math.min(computed.end, computed.start + Math.max(0, workarea.start));
+    const end = Math.max(start, Math.min(computed.end, workarea.end ? computed.start + workarea.end : computed.end));
+    window = { start, end };
+  }
 
-    const rel = (frames: number) => Math.round(framesToSeconds(frames - computed.start, fps) * 1000) / 1000;
-    const state: WalkState = { nodes: 0, byKind: {}, depth: 0, issues: [], coverage: [], rel };
-    visit(target, window, 0, state);
+  const rel = (frames: number) => Math.round(framesToSeconds(frames - computed.start, fps) * 1000) / 1000;
+  const state: WalkState = { nodes: 0, byKind: {}, depth: 0, issues: [], coverage: [], rel };
+  visit(target, window, 0, state);
 
-    const issues: CheckIssue[] = [];
-    if (window.end > window.start) {
-      if (state.coverage.length === 0) {
-        // A group of only audio clips is a legitimate thing to check; an
-        // empty visual subtree is not.
-        const audioOnly = (state.byKind["audio"] ?? 0) > 0;
+  const issues: CheckIssue[] = [];
+  if (window.end > window.start) {
+    if (state.coverage.length === 0) {
+      // A group of only audio clips is a legitimate thing to check; an
+      // empty visual subtree is not.
+      const audioOnly = (state.byKind["audio"] ?? 0) > 0;
+      issues.push({
+        code: "no-visuals",
+        severity: audioOnly ? "warning" : "error",
+        message: audioOnly
+          ? "No visual content in the subtree — fine for audio-only nodes, black frames otherwise"
+          : "No visual content anywhere in the subtree — every frame renders empty",
+      });
+    } else {
+      const gaps = findGaps(window, state.coverage);
+      if (gaps.length > 0) {
+        const total = gaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
         issues.push({
-          code: "no-visuals",
-          severity: audioOnly ? "warning" : "error",
-          message: audioOnly
-            ? "No visual content in the subtree — fine for audio-only nodes, black frames otherwise"
-            : "No visual content anywhere in the subtree — every frame renders empty",
+          code: "black-frames",
+          severity: "error",
+          message: `No visuals scheduled in ${gaps.length} span${gaps.length === 1 ? "" : "s"} totaling ${rel(computed.start + total)}s — likely black frames`,
+          ranges: gaps.map((gap) => ({ start: rel(gap.start), end: rel(gap.end) })),
         });
-      } else {
-        const gaps = findGaps(window, state.coverage);
-        if (gaps.length > 0) {
-          const total = gaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
-          issues.push({
-            code: "black-frames",
-            severity: "error",
-            message: `No visuals scheduled in ${gaps.length} span${gaps.length === 1 ? "" : "s"} totaling ${rel(computed.start + total)}s — likely black frames`,
-            ranges: gaps.map((gap) => ({ start: rel(gap.start), end: rel(gap.end) })),
-          });
-        }
       }
     }
-    issues.push(...state.issues);
+  }
+  issues.push(...state.issues);
 
-    return {
-      stats: {
-        nodes: state.nodes,
-        byKind: state.byKind,
-        depth: state.depth,
-        duration: rel(computed.start + (window.end - window.start)),
-      },
-      issues,
-    };
+  return {
+    stats: {
+      nodes: state.nodes,
+      byKind: state.byKind,
+      depth: state.depth,
+      duration: rel(computed.start + (window.end - window.start)),
+    },
+    issues,
+  };
 };

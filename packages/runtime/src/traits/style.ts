@@ -59,7 +59,10 @@ export const Effect = trait({
 	value: 0,
 });
 
-// A `<mask>`: limits the effect holding it to where its picture is, ChildOf the effect.
+// A `<mask>`: limits the node or the effect holding it to where its picture
+// is, ChildOf that holder. The picture is a mask file (its AssetId) or the
+// nodes under it, which sit in the holder's space and time (see
+// `getMaskContainers`).
 export const Mask = trait({
 	offset: 0,
 	inverted: false,

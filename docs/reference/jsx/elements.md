@@ -15,7 +15,7 @@ camelCase composition elements map 1:1 onto entities. Lowercase DOM vocabulary i
 
 | Element | What it is |
 | ------- | ---------- |
-| [`<rect>`](./rect.md) | A rectangle. Takes paints, strokes, shadows and effects. With `clipPath` it clips its parent instead of drawing. |
+| [`<rect>`](./rect.md) | A rectangle. Takes paints, strokes, shadows, effects, clip paths and masks. |
 | [`<ellipse>`](./ellipse.md) | An ellipse inscribed in its box. Takes what a rect takes. |
 | [`<polygon>`](./polygon.md) | A regular polygon (`pointCount` corners, a triangle by default) stretched to fill its box. Takes what a rect takes. |
 | [`<path>`](./path.md) | A vector outline from SVG path data (`d`), in its box's pixels or stretched from a `viewBox`; morphs between keyframes and trims. Takes what a rect takes. |
@@ -45,14 +45,15 @@ Children of a node, stacked in document order over its intrinsic fill. See [pain
 
 ## Styles and motion
 
-Sub-entity children of the node (or paint) that holds them. See [styles.md](./styles.md), [animations.md](./animations.md), [keyframes.md](./keyframes.md).
+Sub-entity children of the node (or paint) that holds them. See [styles.md](./styles.md), [masks.md](./masks.md), [animations.md](./animations.md), [keyframes.md](./keyframes.md).
 
 | Element | What it is |
 | ------- | ---------- |
 | `<stroke>` | An outline of the parent's box or glyphs, in its `color` or its solid and gradient paint children. Several stack. |
 | `<shadow>` | A drop shadow beneath the parent's silhouette. Several stack. |
 | `<effect>` | A CSS-style filter over the parent's rendered pixels. Several stack. |
-| `<mask>` | A matte limiting the `<effect>` holding it: the alpha of a tracked frame sequence. Under an `opacity` effect, the cut-out. See [styles.md](./styles.md#mask). |
+| `<clipPath>` | Clips the node holding it to the outlines of the shapes under it. See [masks.md](./masks.md). |
+| `<mask>` | A matte: keeps only what its picture covers — the elements under it, or a mask file — on the node holding it, or limits the `<effect>` holding it. See [masks.md](./masks.md). |
 | `<animation>` | One preset in/out animation of the node holding it. |
 | `<keyframeTrack>` | The keyframes of one prop of the element holding it. |
 | `<keyframe>` | One keyframe of the track holding it. |
@@ -70,7 +71,6 @@ User-defined components are ordinary Solid components; they compose the elements
 | `<scene>` | required — the frame's own size |
 | `<rect>`, `<ellipse>`, `<polygon>`, `<path>`, `<html>`, `<surface>` | 100 × 100 |
 | `<audio>` | 500 × 150 (the waveform box on the canvas) |
-| `<rect clipPath>` | 500 × 500 |
 | `<text>` | fits its glyphs |
 | `<captions>` | the preset's — it lays out the caption block against the scene's frame |
 | `<group>`, `<sequence>` | fits its children |

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {
-	Scene, Group, Sequential, Audio, AdjustmentLayer, Caption, Geometry, IsClipPath,
-	Paint, Cache, Stage,
+	Scene, Group, Sequential, Audio, AdjustmentLayer, Caption, Geometry, ClipPath, Mask,
+	Paint, Cache, Stage, ChildOf,
 } from '../traits';
 import { GeometryType, PaintType } from '../constants';
 
@@ -81,7 +81,21 @@ export function isShape(entity: Entity): boolean {
 }
 
 export function isClipPath(entity: Entity): boolean {
-	return entity.has(IsClipPath);
+	return entity.has(ClipPath);
+}
+
+/** A shape under a `<clipPath>`: one of the outlines it clips by, drawn nowhere itself. */
+export function isClipShape(entity: Entity): boolean {
+	return entity.targetFor(ChildOf)?.has(ClipPath) ?? false;
+}
+
+export function isMask(entity: Entity): boolean {
+	return entity.has(Mask);
+}
+
+/** A `<clipPath>` or a `<mask>`: a container whose nodes cut its holder rather than draw. */
+export function isMaskContainer(entity: Entity): boolean {
+	return entity.has(ClipPath) || entity.has(Mask);
 }
 
 export function hasHtmlPaint(entity: Entity): boolean {

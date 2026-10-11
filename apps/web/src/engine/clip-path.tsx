@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { ClipPath as ClipPathElement } from '@diffusionstudio/reconciler';
 import {
 	Computed,
 	Flip,
@@ -14,9 +15,10 @@ import {
 	entityWorldMat,
 	getEntityTree,
 	getIntrinsicPaint,
+	getParentEntity,
 	getSelection,
 	invert2D,
-	isClipPath,
+	isMaskContainer,
 	isShape,
 	multiply2D,
 	store,
@@ -55,15 +57,17 @@ export function clearClipPathTarget(): void {
 }
 
 /**
- * Whether `entity` can become a clip path of `target`: a plain shape (a clip
- * path is a `<rect>`, `<ellipse>`, `<polygon>` or `<path>`, so media, text and
- * containers are out), not one
- * already, and not the target or something the target sits inside — a node
- * cannot be moved into its own subtree.
+ * Whether `entity` can clip `target`: a plain shape (what a `<clipPath>`
+ * clips by is `<rect>`, `<ellipse>`, `<polygon>` or `<path>`, so media, text
+ * and containers are out), not cutting something already, and not the target
+ * or something the target sits inside — a node cannot be moved into its own
+ * subtree.
  */
 export function canClipWith(world: World, target: Entity, entity: Entity): boolean {
 	if (entity === target || !entity.isAlive() || !entity.get(Source)?.value) return false;
-	if (!isShape(entity) || isClipPath(entity) || getIntrinsicPaint(entity) !== undefined) return false;
+	if (!isShape(entity) || getIntrinsicPaint(entity) !== undefined) return false;
+	const parent = getParentEntity(entity);
+	if (parent && isMaskContainer(parent)) return false;
 	return !getEntityTree(world, entity).includes(target);
 }
 
@@ -75,12 +79,14 @@ export function getClipPathPicks(world: World): Entity[] {
 }
 
 /**
- * Makes the picked shapes clip paths of the target, one undo step, and puts
- * the tool down with the target selected. Each shape keeps its place on the
- * canvas: its matrix is carried from the parent it had into the target's
- * space and written back as `x`, `y` and `rotation`, with whatever scale the
- * move adds (a target drawn at half size, say) folded into its `width` and
- * `height` rather than its own scale.
+ * Gives the target a new `<clipPath>` holding the picked shapes, one undo
+ * step, and puts the tool down with the target selected: the target then
+ * shows only inside their outlines together, and within any clip path it had
+ * before. Each shape keeps its place on the canvas: its matrix is carried
+ * from the parent it had into the target's space (the clip path's) and
+ * written back as `x`, `y` and `rotation`, with whatever scale the move adds
+ * (a target drawn at half size, say) folded into its `width` and `height`
+ * rather than its own scale.
  */
 export function applyClipPaths(world: World): void {
 	const target = getClipPathTarget();
@@ -92,6 +98,13 @@ export function applyClipPaths(world: World): void {
 	const flip = store(world, Flip);
 	const targetInverse = invert2D(entityWorldMat(world, target));
 
+	const [clipPath] = editor.insertElement(target, () => <ClipPathElement />);
+	if (!clipPath) {
+		leaveClipPathTool(world, target);
+		return;
+	}
+
+	let moved = 0;
 	for (const shape of picks) {
 		const eid = shape.id();
 		const width = computed.width[eid] ?? 0;
@@ -99,14 +112,15 @@ export function applyClipPaths(world: World): void {
 		const pivot = entityPivot(world, shape);
 
 		// Where it is drawn now, pivot folded in (see `bakeContainerInto`),
-		// taken into the target's space before the move changes its parent.
+		// taken into the target's space (which the clip path shares) before
+		// the move changes its parent.
 		const placed = decompose2D(multiply2D(
 			targetInverse,
 			multiply2D(entityWorldMat(world, shape), translate2D(pivot.x, pivot.y)),
 		));
 
-		if (!editor.reparent(shape, target)) continue;
-		editor.editProperty(shape, 'clipPath', true);
+		if (!editor.reparent(shape, clipPath)) continue;
+		moved++;
 
 		// The scale the shape carries of its own stays its own; the rest is the move's.
 		const ownX = (computed.scaleX[eid] ?? 1) * (flip.x[eid] ?? 1);
@@ -128,6 +142,9 @@ export function applyClipPaths(world: World): void {
 		if (nextHeight !== Math.round(height)) writes.push(['height', nextHeight]);
 		if (writes.length) editTransform(world, editor, shape, writes);
 	}
+
+	// An empty clip path would clip nothing; it is not worth the file.
+	if (moved === 0) editor.remove(clipPath);
 
 	leaveClipPathTool(world, target);
 }

@@ -37,6 +37,7 @@ export default function Project() {
 | [fonts.md](./fonts.md) | Fonts for `<text>` and HTML: local families, the `fonts` tool |
 | [paints.md](./paints.md) | `<solidPaint>`, gradients, `<colorStop>`, `<imagePaint>` / `<videoPaint>` |
 | [styles.md](./styles.md) | `<stroke>`, `<shadow>`, `<effect>`: outlines, drop shadows and filters |
+| [masks.md](./masks.md) | `<clipPath>`, `<mask>`: cutting an element by outlines or by a picture |
 | [html.md](./html.md) | `<html>`: reactive HTML children drawn into the box |
 | [surface-paint.md](./surface-paint.md) | `<surface>`: a ref-provided canvas you draw into, sampled every frame |
 | [shader-paint.md](./shader-paint.md) | `<shaderPaint>`: a WGSL fragment shader over the media paint below it |

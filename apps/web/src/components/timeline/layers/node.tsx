@@ -19,7 +19,7 @@ import {
   isAdjustmentLayer,
   isCaption,
   isGroup,
-  isClipPath,
+  isClipShape,
   isEllipse,
   isPath,
   isPolygon,
@@ -354,7 +354,7 @@ export function NodeLayer(props: LayerRowProps) {
 function getLayerIcon(world: World, layer: TimelineNode) {
   const entity = layer.entity;
 
-  if (isClipPath(entity)) return "mask-small";
+  if (isClipShape(entity)) return "mask-small";
   if (isAdjustmentLayer(entity)) return "adjustment-layer";
   if (isScene(entity)) return "scene-frame-small";
   if (isSequence(entity)) return "timeline-sequence-small";
