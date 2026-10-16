@@ -9,13 +9,13 @@ import {
 	Delay, Trim, PlaybackRate, SourceFrameRate, Keyframe, ItemIndex,
 	Position, Offset, Rotation, Scale, UniformScale, Skew, Anchor, Pivot, Flip,
 	Opacity, Color, Blur, Volume, Effect, CornerRadius, MixedCornerRadius,
-	ColorStop, LinearGradient, EllipticalGradient, PathTrim, StrokeStyle, StrokeDash, Size, Computed, Active, Stage, IsClipPath,
+	ColorStop, LinearGradient, EllipticalGradient, PathTrim, StrokeStyle, StrokeDash, Size, Computed, Active, Stage,
 	ImageDecoderHandle, VideoDecoderHandle,
 	AudioDecoderHandle, CaptionDecoderHandle, WaveformHandle,
 	ShaderHostHandle, AudioBusHandle, TextStyle, TextRange,
 } from '../traits';
 import { getParentEntity } from '../queries/hierarchy';
-import { evictFromCaches, rebuildCaches, refileClipPath } from '../actions/cache';
+import { evictFromCaches, rebuildCaches } from '../actions/cache';
 import { syncStagePlayback } from '../actions/playback';
 import { disposeDecoders, disconnectAudioBus } from '../media/dispose';
 import {
@@ -105,14 +105,6 @@ export function observeWorld(world: World): () => void {
 		entity.add(Group);
 		entity.remove(Position, Offset, Rotation, Scale, Skew, Anchor, Pivot, Flip);
 	}));
-
-	const refile = (clipPath: boolean) => (entity: Entity) => {
-		const parent = getParentEntity(entity);
-		if (parent === null || !world.has(parent)) return;
-		refileClipPath(world, entity, parent, clipPath);
-	};
-	subs.push(world.onAdd(IsClipPath, refile(true)));
-	subs.push(world.onRemove(IsClipPath, refile(false)));
 
 	// One active entity per world, and only a root.
 	subs.push(world.onAdd(Active, (entity) => {

@@ -38,6 +38,7 @@ export type {
   CameraMatrix,
   CaptionPreset,
   CaptionsProps,
+  ClipPathProps,
   ColorStopProps,
   Easing,
   EffectProps,

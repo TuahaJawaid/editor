@@ -21,9 +21,8 @@ All [common props](./elements.md#common-props), plus:
 | `trimStart`, `trimEnd` | `number` | `0`, `1` | Draw only the part of each subpath between these two fractions of its length (After Effects' Trim Paths). The part that is left is also what is filled and picked up on the canvas. |
 | `trimOffset` | `number` | `0` | Slides the trimmed part along the path, as a fraction of its length. It wraps, so `1` is once round: across the start of a closed subpath, into a second piece on an open one. |
 | `fill` | `string` | none | Any CSS color; alpha is ignored (use `opacity`). Shorthand for a solid paint child, drawn beneath any paint children. |
-| `clipPath` | `boolean` | `false` | Makes the path a clip path of its parent instead of a drawn shape: the parent shows only inside its outline. Works like [`<rect clipPath>`](./rect.md#clip-paths); a keyframed `d` on one is an animated mask. |
 
-A `d` that does not parse draws what came before the error, as SVG does, and the error is logged. Without `width`/`height` a path's box is 100×100. A fill closes open subpaths with a straight line; a [`<stroke>`](./styles.md#stroke) does not, and ends them with its `cap`.
+A `d` that does not parse draws what came before the error, as SVG does, and the error is logged. Under a [`<clipPath>`](./masks.md#clippath) a path clips by its outline, and a keyframed `d` there is an animated clip. Without `width`/`height` a path's box is 100×100. A fill closes open subpaths with a straight line; a [`<stroke>`](./styles.md#stroke) does not, and ends them with its `cap`.
 
 ## Coordinates and the box
 

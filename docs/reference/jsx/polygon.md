@@ -16,6 +16,5 @@ All [common props](./elements.md#common-props), plus:
 | ---- | ---- | ------- | ------- |
 | `pointCount` | `number` | `3` | How many corners. Rounded to a whole number; anything under 3 is 3. Not animatable. |
 | `fill` | `string` | none | Any CSS color; alpha is ignored (use `opacity`). Shorthand for a solid paint child, drawn beneath any paint children. |
-| `clipPath` | `boolean` | `false` | Makes the polygon a clip path of its parent instead of a drawn shape: the parent shows only inside its outline. Works like [`<rect clipPath>`](./rect.md#clip-paths). |
 
 Without `width`/`height` a polygon is 100×100. The corners sit on an ellipse and are then stretched so the outline touches every side of the box, so a triangle fills its box's full height rather than leaving a gap below its base. The canvas only picks it up inside the outline.

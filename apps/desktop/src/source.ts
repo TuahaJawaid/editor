@@ -28,10 +28,12 @@ const COMPOSITION_COMPONENTS = new Map<string, string>(
 
 // These composition names also exist in SVG. An SVG fragment is DOM content
 // only while it has an SVG container in the same JSX tree; elsewhere the tag
-// keeps its composition meaning.
-const AMBIGUOUS_SVG_TAGS: ReadonlySet<string> = new Set(["rect", "ellipse", "polygon", "path", "text", "image"]);
+// keeps its composition meaning. `<mask>` and `<clipPath>` are SVG containers
+// too, but as such they only ever sit in an `<svg>`, so they are not counted
+// as one: a composition `<mask>` keeps the shapes under it composition ones.
+const AMBIGUOUS_SVG_TAGS: ReadonlySet<string> = new Set(["rect", "ellipse", "polygon", "path", "text", "image", "mask", "clipPath"]);
 const SVG_CONTAINERS: ReadonlySet<string> = new Set([
-  "svg", "g", "defs", "symbol", "marker", "mask", "clipPath", "pattern",
+  "svg", "g", "defs", "symbol", "marker", "pattern",
   "filter", "linearGradient", "radialGradient", "textPath", "tspan", "switch",
 ]);
 

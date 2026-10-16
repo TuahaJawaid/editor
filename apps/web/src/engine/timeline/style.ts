@@ -10,7 +10,7 @@ import {
 	isAdjustmentLayer,
 	isCaption,
 	isGroup,
-	isClipPath,
+	isClipShape,
 	isEllipse,
 	isPath,
 	isPolygon,
@@ -37,7 +37,7 @@ export function getClipStyle(entity: Entity, asset: Asset | null, errored = fals
 	if (isText(entity)) return COLORS.clip.text;
 	if (isScene(entity)) return COLORS.clip.scene;
 	if (isGroup(entity)) return COLORS.clip.group;
-	if (isClipPath(entity)) return COLORS.clip.clipPath;
+	if (isClipShape(entity)) return COLORS.clip.clipPath;
 	if (isAdjustmentLayer(entity)) return COLORS.clip.adjustment;
 	if (hasHtmlPaint(entity) || hasSurfacePaint(entity)) return COLORS.clip.html;
 
@@ -72,7 +72,7 @@ export function getClipFallbackName(world: World, entity: Entity): string {
 	if (isScene(entity)) return 'Scene';
 	if (isSequence(entity)) return 'Sequence';
 	if (isGroup(entity)) return 'Group';
-	if (isClipPath(entity)) return 'Clip Path';
+	if (isClipShape(entity)) return 'Clip Path';
 	if (isAdjustmentLayer(entity)) return 'Adjustment';
 	if (hasHtmlPaint(entity)) return 'HTML';
 	if (hasSurfacePaint(entity)) return 'Surface';

@@ -11,7 +11,7 @@ import {
   isAudio,
   isCaption,
   isGroup,
-  isClipPath,
+  isClipShape,
   isPath,
   isScene,
   isSequence,
@@ -62,7 +62,7 @@ export type SelectionTarget =
 
 function classifyNode(entity: Entity): SelectionTarget {
   if (isScene(entity)) return "scene";
-  if (isClipPath(entity)) return "clip-path";
+  if (isClipShape(entity)) return "clip-path";
   if (isSequence(entity)) return "sequence";
   if (isCaption(entity)) return "caption";
   if (isAudio(entity)) return "audio";
