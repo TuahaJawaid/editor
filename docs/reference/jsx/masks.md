@@ -7,7 +7,7 @@ Two ways to cut an element, both as SVG has them: a **clip path** shows the elem
   <clipPath>
     <ellipse x={560} y={140} width={800} height={800} />
   </clipPath>
-  <mask>
+  <mask type="alpha">
     <text fontSize={180} color="#FFFFFF">HELLO</text>
   </mask>
   <video src="footage/beach.mp4" width={1920} height={1080} />
@@ -51,6 +51,7 @@ Keeps only what its **picture** covers, by the picture's alpha: opaque keeps, tr
 
 | Prop | Type | Default | Meaning |
 | ---- | ---- | ------- | ------- |
+| `type` | `"alpha"` | `"alpha"` | Which channel of the picture cuts. Only `"alpha"` for now, its opacity; unlike SVG, whose masks default to luminance. |
 | `inverted` | `boolean` | `false` | Covers what the picture does not instead. |
 | `blur` | `number` | `0` | Feather: radius in px the edge falls off over. |
 | `opacity` | `number` | `1` | How strongly the mask cuts, `0`–`1`. `1` leaves nothing outside it; lower lets that much through outside; `0` is no mask. |
@@ -77,7 +78,7 @@ A mask file is what the editor's object mask tool makes — pick an object in a 
 ```tsx
 <video src="footage/skater.mp4" width={1920} height={1080}>
   <effect type="opacity" value={1}>
-    <mask src="masks/skater" sourceIn={2} frameRate={30} blur={6} />
+    <mask src="masks/skater.mask" sourceIn={2} blur={6} />
   </effect>
 </video>
 ```

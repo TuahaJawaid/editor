@@ -765,6 +765,11 @@ export type ClipPathProps = Pick<CompositeProps, "hidden"> & {
  * their time nor a `src` does nothing.
  */
 export type MaskProps = Pick<CompositeProps, "hidden"> & {
+  /**
+   * Which channel of the picture cuts: `"alpha"`, its opacity. The only kind
+   * for now (unlike SVG, whose default is luminance). Default "alpha".
+   */
+  type?: "alpha";
   /** The mask's frames: a directory of numbered images whose alpha is the mask. */
   src?: string;
   /** The parent's source time the first frame of `src` belongs to, so the frames stay on the footage they were made from whatever the trim. Default 0. */
