@@ -39,6 +39,7 @@ import { ShadowsSettings } from "./shadows";
 import { EffectsSettings } from "./effects";
 import { AnimationsSettings } from "./animations";
 import { TransitionSettings } from "./transition";
+import { MasksSettings } from "./masks";
 import { ClipPathsSettings } from "./clip-paths";
 import { AudioSettings } from "./audio";
 import { InterpolationSettings } from "./interpolation";
@@ -182,6 +183,7 @@ export function Inspector() {
           </Show>
 
           <Show when={includesTarget("shape", "text", "caption", "group")}>
+            <MasksSettings selection={nodes()} />
             <ClipPathsSettings selection={nodes()} />
           </Show>
 

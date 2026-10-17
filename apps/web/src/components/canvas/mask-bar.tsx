@@ -10,25 +10,24 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDerived } from "@/engine/hooks";
 import { ActionBar } from "./action-bar";
-import { applyClipPaths, cancelClipPath, getClipPathPicks, getClipPathTarget } from "@/engine/clip-path";
+import { applyMasks, cancelMask, getMaskPicks, getMaskTarget } from "@/engine/mask";
 
 import type { Entity } from "koota";
 
 /**
- * The clip path tool's action bar, over the canvas while the tool is up: how
- * many of the selected shapes would clip the target, and the way out —
- * Cancel leaves the document as it was, Confirm makes them clip paths of the
- * target.
+ * The mask tool's action bar, over the canvas while the tool is up: how many
+ * of the selected layers would mask the target, and the way out — Cancel
+ * leaves the document as it was, Confirm makes them a mask of the target.
  */
-export function ClipPathBar() {
+export function MaskBar() {
   const world = useWorld();
 
-  const target = useDerived(getClipPathTarget);
-  const picks = useDerived(() => getClipPathPicks(world), sameEntities);
+  const target = useDerived(getMaskTarget);
+  const picks = useDerived(() => getMaskPicks(world), sameEntities);
 
   // Nothing to aim at (the target was deleted, or undone away): the tool has no work left.
   createEffect(() => {
-    if (!target()) cancelClipPath(world);
+    if (!target()) cancelMask(world);
   });
 
   return (
@@ -37,21 +36,21 @@ export function ClipPathBar() {
         <ActionBar>
           <span class="px-2 text-xs text-muted-foreground whitespace-nowrap">
             {picks().length === 0
-              ? "Pick a shape to use as the clipping source"
-              : `${picks().length} ${picks().length === 1 ? "shape" : "shapes"} selected`}
+              ? "Pick a layer to use as the mask"
+              : `${picks().length} ${picks().length === 1 ? "layer" : "layers"} selected`}
           </span>
           <Separator orientation="vertical" class="min-h-5" />
           <Tooltip>
-            <TooltipTrigger as={Button} variant="ghost" class="text-muted-foreground" onClick={() => cancelClipPath(world)}>
+            <TooltipTrigger as={Button} variant="ghost" class="text-muted-foreground" onClick={() => cancelMask(world)}>
               Cancel
             </TooltipTrigger>
             <TooltipContent shortcut="Esc">Cancel</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger as={Button} disabled={picks().length === 0} onClick={() => applyClipPaths(world)}>
+            <TooltipTrigger as={Button} disabled={picks().length === 0} onClick={() => applyMasks(world)}>
               Confirm
             </TooltipTrigger>
-            <TooltipContent shortcut="⌘↵">Clip <TargetName target={node()} /></TooltipContent>
+            <TooltipContent shortcut="⌘↵">Mask <TargetName target={node()} /></TooltipContent>
           </Tooltip>
         </ActionBar>
       )}

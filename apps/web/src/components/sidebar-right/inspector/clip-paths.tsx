@@ -2,16 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { For } from "solid-js";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Icon } from "@/components/ui/icon";
-import { ItemRow } from "@/components/ui/item-row";
+import { For, Show } from "solid-js";
 import { PanelSection } from "@/components/ui/panel-section";
-import { useTrait, useWorld } from "@diffusionstudio/koota-solid";
-import { Cache, Name } from "@diffusionstudio/runtime";
-import { beginClipPathFor } from "@/engine/clip-path";
+import { Cache } from "@diffusionstudio/runtime";
 import { useDerived, useEditor } from "@/engine/hooks";
+import { ContainerRow } from "./masks";
 
 import type { Entity } from "koota";
 
@@ -23,14 +18,12 @@ type ClipPathsSettingsProps = {
 };
 
 /**
- * The `<clipPath>`s of the selected node, one row each (several intersect).
- * A clip path is the shapes under it and has no inspector of its own: a row
- * selects its shapes, whose transform, time and appearance panels are then
- * the ones shown. The plus picks up the clip path tool, whose bar over the
- * canvas puts the shapes selected there into a new clip path of this node.
+ * The `<clipPath>`s the selected node was given in its JSX, one row each.
+ * Clip paths are on their way out of the UI in favour of masks: nothing here
+ * adds or edits one, a row only removes it, and a node without any shows no
+ * section at all.
  */
 export function ClipPathsSettings(props: ClipPathsSettingsProps) {
-  const world = useWorld();
   const editor = useEditor();
   const entity = () => props.selection[0]!;
 
@@ -38,65 +31,18 @@ export function ClipPathsSettings(props: ClipPathsSettingsProps) {
   const clipPaths = useDerived(() => entity().get(Cache)?.clipPaths ?? NO_CLIP_PATHS);
 
   return (
-    <PanelSection
-      title="Clip Paths"
-      actions={
-        <Tooltip>
-          <TooltipTrigger
-            as={Button}
-            size="icon"
-            variant="ghost"
-            class="text-muted-foreground"
-            onClick={() => beginClipPathFor(world, entity())}
-          >
-            <Icon name="plus-add" />
-          </TooltipTrigger>
-          <TooltipContent>Add clip path</TooltipContent>
-        </Tooltip>
-      }
-    >
-      <For each={clipPaths()}>
-        {(clipPath) => (
-          <ClipPathRow
-            clipPath={clipPath}
-            onSelect={() => editor.select(clipPath.get(Cache)?.children ?? [])}
-            onRemove={() => editor.remove(clipPath)}
-          />
-        )}
-      </For>
-    </PanelSection>
-  );
-}
-
-type ClipPathRowProps = {
-  clipPath: Entity;
-  onSelect(): void;
-  onRemove(): void;
-};
-
-function ClipPathRow(props: ClipPathRowProps) {
-  const name = useTrait(() => props.clipPath, Name);
-
-  return (
-    <ItemRow
-      label="Clip Path"
-      value={name()?.value || "Clip Path"}
-      icon={<Icon name="mask-small" />}
-      class="text-foreground"
-      onClick={props.onSelect}
-    >
-      <Tooltip>
-        <TooltipTrigger
-          as={Button}
-          size="icon"
-          variant="ghost"
-          class="text-muted-foreground"
-          onClick={props.onRemove}
-        >
-          <Icon name="close-remove-small" />
-        </TooltipTrigger>
-        <TooltipContent>Remove clip path</TooltipContent>
-      </Tooltip>
-    </ItemRow>
+    <Show when={clipPaths().length > 0}>
+      <PanelSection title="Clip Path">
+        <For each={clipPaths()}>
+          {(clipPath) => (
+            <ContainerRow
+              container={clipPath}
+              label="Shape"
+              onRemove={() => editor.remove(clipPath)}
+            />
+          )}
+        </For>
+      </PanelSection>
+    </Show>
   );
 }

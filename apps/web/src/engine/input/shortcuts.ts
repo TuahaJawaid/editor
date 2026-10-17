@@ -39,7 +39,7 @@ import { Not, Or } from 'koota';
 import { claimClipboard, hasMedia, readClipboardMedia } from '@/lib/clipboard';
 import { pasteClipboardMedia } from '../asset-actions';
 import { zoomBy, zoomTo, zoomToFit, zoomToSelection } from '../camera';
-import { applyClipPaths, cancelClipPath } from '../clip-path';
+import { applyMasks, cancelMask } from '../mask';
 import { getDocumentEditor } from '../editor';
 import { groupSelection, ungroupSelection, unwrapSequenceSelection, wrapSelectionInScene, wrapSelectionInSequence } from '../group';
 import { getEditHistory } from '../history';
@@ -511,16 +511,16 @@ const maskStrokeToUndo = (world: World): boolean => {
 	return objectMaskTool(world) && track?.status === 'seeded' && track.strokes.length > 0;
 };
 
-const clipPathTool = (world: World): boolean => world.get(Tool)?.value === ToolType.CLIP_PATH;
+const maskTool = (world: World): boolean => world.get(Tool)?.value === ToolType.MASK;
 
 /** Enter on a lone selected path edits its vertices, where it would otherwise step into children. */
 const pathToEdit = (world: World) => world.get(Tool)?.value === ToolType.MOVE && selectedPath(world) !== null;
 const editSelectedPath = (world: World) => beginPathEdit(world, selectedPath(world)!);
 
 const PRESSED_SHORTCUTS: readonly Shortcut[] = [
-	// Clip path tool shortcuts, ahead of the Esc and ⌘↵ the rest of the editor answers to.
-	{ keys: ['escape'], action: cancelClipPath, active: clipPathTool },
-	{ keys: ['enter', 'mod', '!shift', '!alt'], action: applyClipPaths, active: clipPathTool },
+	// Mask tool shortcuts, ahead of the Esc and ⌘↵ the rest of the editor answers to.
+	{ keys: ['escape'], action: cancelMask, active: maskTool },
+	{ keys: ['enter', 'mod', '!shift', '!alt'], action: applyMasks, active: maskTool },
 	// The pen ends its path on Esc or Enter, the path editor goes down on
 	// either, and Delete takes out its picked vertex rather than the path.
 	{ keys: ['escape'], action: (world) => finishPen(world, false), active: isPenDrawing },
