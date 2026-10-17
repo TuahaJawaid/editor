@@ -91,6 +91,11 @@ export function SubItemLayer(props: LayerRowProps) {
               <Icon name={props.expanded ? "chevron-down" : "chevron-right"} class="hover:text-foreground" />
             </Show>
           </button>
+          <Show when={entity().has(Mask)}>
+            <div class="size-4 shrink-0 flex items-center justify-center overflow-clip mr-0.5">
+              <Icon name="layer-mask-small" />
+            </div>
+          </Show>
           <span class="text-xs px-0.5 shrink-0 whitespace-nowrap text-foreground">
             {name()}
           </span>
