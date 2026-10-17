@@ -13,7 +13,7 @@ export function RemoveBackgroundCommand() {
     id: "remove-background",
     title: "Remove background",
     group: "Media",
-    icon: "ai-generate",
+    icon: "ai.remove-background",
     keywords: ["cutout", "matte", "transparent"],
     ready: () => targets("removeBackground").length > 0,
     run: () => run("removeBackground"),

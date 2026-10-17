@@ -18,7 +18,7 @@ import type { Accessor, Component, JSX, Owner } from "solid-js";
  * taken from the order commands register in, which depends on what mounted
  * first and changes as parts of the UI come and go.
  */
-export const SECTIONS = ["Media", "Generate", "Assets", "Export", "Timeline", "Object", "Tools", "Edit", "Window"] as const;
+export const SECTIONS = ["Media", "Generate", "Assets", "Export", "Timeline", "Object", "Tools", "File", "Edit", "View"] as const;
 
 export type Section = (typeof SECTIONS)[number];
 

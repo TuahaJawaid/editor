@@ -106,7 +106,7 @@ export function PromptInputActions() {
                   <TransformItem name="upscale" icon="arrow-scale" label="Upscale" run={run} />
                 </Show>
                 <Show when={hasImageSelection()}>
-                  <TransformItem name="removeBackground" icon="ai-generate" label="Remove background" run={run} />
+                  <TransformItem name="removeBackground" icon="ai.remove-background" label="Remove background" run={run} />
                 </Show>
               </DropdownMenuGroup>
             </DropdownMenuContent>

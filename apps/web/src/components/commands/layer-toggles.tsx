@@ -13,7 +13,7 @@ export function LayerToggleCommands() {
 
   useCommand({
     id: "toggle-muted",
-    title: "Toggle mute",
+    title: "Mute/Unmute",
     group: "Object",
     icon: "mute",
     keywords: ["mute", "unmute", "audio", "sound", "silence"],

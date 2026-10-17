@@ -8,11 +8,11 @@ import { useCommand } from "@/context/commands";
 export function ReloadWindowCommand() {
   useCommand({
     id: "reload-window",
-    title: "Force reload window",
-    group: "Window",
+    title: "Force reload app",
+    group: "View",
     icon: "reload",
     keywords: ["refresh", "restart"],
-    shortcut: ["⌘", "R"],
+    shortcut: ["⇧", "⌘", "R"],
     order: 1,
     run: () => window.location.reload(),
   });

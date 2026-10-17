@@ -167,7 +167,7 @@ const SHORTCUTS: Shortcut[] = [
   },
   {
     id: "toggle-hidden",
-    title: "Toggle visibility",
+    title: "Show/Hide",
     group: "Object",
     icon: "eye-on",
     keys: ["⇧", "⌘", "H"],

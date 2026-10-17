@@ -17,7 +17,7 @@ export function WindowCommands() {
   useCommand({
     id: "toggle-ui",
     title: "Show/Hide UI",
-    group: "Window",
+    group: "View",
     icon: "sidebar",
     keywords: ["panels", "sidebar", "focus", "fullscreen", "toggle ui"],
     shortcut: ["⌘", "\\"],
@@ -40,7 +40,7 @@ export function WindowCommands() {
   useCommand({
     id: "toggle-timeline",
     title: "Show/Hide timeline",
-    group: "Window",
+    group: "View",
     icon: "sidebar-timeline",
     keywords: ["panel", "tracks", "layers", "minimize", "toggle timeline"],
     shortcut: ["⌘", "J"],
@@ -71,7 +71,7 @@ export function WindowCommands() {
   useCommand({
     id: "toggle-chat",
     title: "Show/Hide chat",
-    group: "Window",
+    group: "View",
     icon: "ask-chat",
     keywords: ["open chat", "agent", "assistant", "message", "claude"],
     shortcut: ["⌘", "L"],
@@ -81,7 +81,7 @@ export function WindowCommands() {
   useCommand({
     id: "new-chat",
     title: "New chat thread",
-    group: "Window",
+    group: "View",
     icon: "plus-add",
     keywords: ["new thread", "conversation", "agent", "assistant", "claude"],
     shortcut: ["⇧", "⌘", "L"],
@@ -92,7 +92,7 @@ export function WindowCommands() {
   useCommand({
     id: "actions",
     title: "Actions…",
-    group: "Window",
+    group: "View",
     icon: "tool.actions-spotlight",
     shortcut: ["⌘", "K"],
     palette: false,
