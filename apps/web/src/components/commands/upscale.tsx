@@ -7,7 +7,7 @@ import { useTransforms } from "@/components/genai/use-transforms";
 import { TransformBar } from "./transform-bar";
 
 export function UpscaleCommand() {
-  const { targets, run } = useTransforms();
+  const { targets, run, price } = useTransforms();
 
   useCommand({
     id: "upscale",
@@ -17,6 +17,7 @@ export function UpscaleCommand() {
     keywords: ["resolution", "enhance", "sharpen"],
     ready: () => targets("upscale").length > 0,
     run: () => run("upscale"),
+    credits: () => price("upscale"),
     bar: () => <TransformBar type="upscale" verb="Upscale" empty="Select an image or video to upscale" />,
   });
 
