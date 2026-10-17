@@ -30,9 +30,11 @@ export const Audio = trait();
 
 export const AdjustmentLayer = trait();
 
-// Tag marking an entity as a clip path (`<rect clipPath>`). Clip paths are
-// ChildOf their target; Cache.clipPaths on the target is derived from IsClipPath + ChildOf queries.
-export const IsClipPath = trait();
+// A `<clipPath>`: the node holding it shows only inside the outlines of the
+// shapes under it. ChildOf its target, which files it in Cache.clipPaths; its
+// shapes are ChildOf it and sit in the target's space and time (see
+// `getMaskContainers`).
+export const ClipPath = trait();
 
 // Tag for shadow sub-entities (distinguishes them from other Effect
 // sub-entities in ChildOf queries).

@@ -548,7 +548,7 @@ export type SceneProps = IdentityProps & PositionProps & Required<Pick<SizeProps
 };
 
 export type GroupProps = CommonProps & FillProps & {
-  /** Element children, plus `<Effect>` (filtering the group as a whole), `<Animation>` and `<KeyframeTrack>` children. */
+  /** Element children, plus `<Effect>` (filtering the group as a whole), `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children. */
   children?: SolidJSX.Element;
 };
 
@@ -579,22 +579,9 @@ export type AdjustmentLayerProps =
 
 export type RectProps = CommonProps & FillProps & {
   /**
-   * Makes the rect a clip path of its parent: it clips the parent (its fills,
-   * strokes and children show only inside the rect's box) instead of drawing.
-   * The rect keeps its transform, `cornerRadius` and timing — a keyframed
-   * clip path sliding across a text is a wipe, one that ends early lets go —
-   * and several clip paths under one parent intersect. A clip path is never
-   * rendered or hit, so its `fill`, `opacity`, `blendMode` and paint children
-   * have no effect. Without `width`/`height` a clip path is 500×500, and
-   * without `end` it clips for the parent's whole window.
-   */
-  clipPath?: boolean;
-  /** @deprecated The old spelling of `clipPath`, read when `clipPath` is not set. */
-  mask?: boolean;
-  /**
    * Paint children (`<SolidPaint>`, `<LinearGradientPaint>`,
    * `<RadialGradientPaint>`, `<AngularGradientPaint>`), plus `<Stroke>`, `<Shadow>`, `<Effect>`,
-   * `<Animation>` and `<KeyframeTrack>` children.
+   * `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children.
    */
   children?: SolidJSX.Element;
 };
@@ -602,14 +589,9 @@ export type RectProps = CommonProps & FillProps & {
 /** `<ellipse>` — an ellipse inscribed in its box. Takes the same children as `<rect>`. */
 export type EllipseProps = CommonProps & FillProps & {
   /**
-   * Makes the ellipse a clip path of its parent, as `<rect clipPath>` does:
-   * the parent shows only inside the curve. Never rendered or hit.
-   */
-  clipPath?: boolean;
-  /**
    * Paint children (`<SolidPaint>`, `<LinearGradientPaint>`,
    * `<RadialGradientPaint>`, `<AngularGradientPaint>`), plus `<Stroke>`, `<Shadow>`, `<Effect>`,
-   * `<Animation>` and `<KeyframeTrack>` children.
+   * `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children.
    */
   children?: SolidJSX.Element;
 };
@@ -622,14 +604,9 @@ export type PolygonProps = CommonProps & FillProps & {
   /** How many corners, a whole number of at least 3. Default 3. */
   pointCount?: number;
   /**
-   * Makes the polygon a clip path of its parent, as `<rect clipPath>` does:
-   * the parent shows only inside its outline. Never rendered or hit.
-   */
-  clipPath?: boolean;
-  /**
    * Paint children (`<SolidPaint>`, `<LinearGradientPaint>`,
    * `<RadialGradientPaint>`, `<AngularGradientPaint>`), plus `<Stroke>`, `<Shadow>`, `<Effect>`,
-   * `<Animation>` and `<KeyframeTrack>` children.
+   * `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children.
    */
   children?: SolidJSX.Element;
 };
@@ -674,14 +651,9 @@ export type PathProps = CommonProps & FillProps & {
    */
   trimOffset?: number;
   /**
-   * Makes the path a clip path of its parent, as `<rect clipPath>` does: the
-   * parent shows only inside its outline. Never rendered or hit.
-   */
-  clipPath?: boolean;
-  /**
    * Paint children (`<SolidPaint>`, `<LinearGradientPaint>`,
    * `<RadialGradientPaint>`, `<AngularGradientPaint>`), plus `<Stroke>`, `<Shadow>`, `<Effect>`,
-   * `<Animation>` and `<KeyframeTrack>` children.
+   * `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children.
    */
   children?: SolidJSX.Element;
 };
@@ -755,27 +727,60 @@ export type EffectProps = Pick<CompositeProps, "hidden"> & {
 };
 
 /**
- * `<mask>` — a matte limiting the `<effect>` holding it: a picture whose
- * alpha says where the effect applies, fitted into the node's box the way
- * the node fits its footage. Under an `"opacity"` effect it is the cut-out:
- * what is outside the mask goes transparent. What the editor's object mask
- * tool makes: it tracks an object through a video and writes the frames it
- * found as a directory of numbered images, which `src` names. Several under
- * one effect intersect. Without a `src` a mask does nothing.
+ * `<clipPath>` — clips the element holding it: its fills, strokes, effects
+ * and children show only inside the outlines of the shapes under the clip
+ * path, applied after its effects. The shapes (`<rect>`, `<ellipse>`,
+ * `<polygon>`, `<path>`) are placed, keyframed and timed in the holder's
+ * box and timeline like its children, and are never rendered or hit, so
+ * their paints, `opacity` and `blendMode` have no effect. Several shapes in
+ * one clip path add up, united by the nonzero rule (a lone `<path>` keeps its
+ * `fillRule`); several clip paths on one element intersect. A shape out of
+ * its time drops out, and a clip path with none in its time clips nothing:
+ * a keyframed shape sliding across a text is a wipe, one that ends early
+ * lets go. Text and other elements under a clip path are ignored; a soft or
+ * textual cut is a `<mask>`.
  */
-export type MaskProps = Pick<CompositeProps, "hidden"> & TrackChildren & {
+export type ClipPathProps = Pick<CompositeProps, "hidden"> & {
+  /** The shape children whose outlines the holder shows inside. */
+  children?: SolidJSX.Element;
+};
+
+/**
+ * `<mask>` — a matte on the element holding it, or on the `<effect>` holding
+ * it. On an element it keeps only what its picture covers (by the picture's
+ * alpha), applied after the element's effects (SVG's `mask`; After Effects' track matte). On an effect
+ * it limits where the effect applies, held to the element's box; under an
+ * `"opacity"` effect that is the cut-out: what is outside the mask goes
+ * transparent.
+ *
+ * The picture is the elements under the mask, or a mask file named by `src`.
+ * Elements (shapes, text, media, groups) are placed, keyframed and timed in
+ * the holder's box and timeline like its children, and are drawn only into
+ * the picture, never on their own; together they make one picture. A mask
+ * file is what the editor's object mask tool makes: it tracks an object
+ * through a video and writes the frames it found as a directory of numbered
+ * images, fitted into the holder's box the way it fits its footage.
+ *
+ * Several masks on one holder intersect. A mask with neither elements in
+ * their time nor a `src` does nothing.
+ */
+export type MaskProps = Pick<CompositeProps, "hidden"> & {
+  /**
+   * Which channel of the picture cuts: `"alpha"`, its opacity. The only kind
+   * for now (unlike SVG, whose default is luminance). Default "alpha".
+   */
+  type?: "alpha";
   /** The mask's frames: a directory of numbered images whose alpha is the mask. */
   src?: string;
-  /** The parent's source time the first frame belongs to, so the frames stay on the footage they were made from whatever the trim. Default 0. */
+  /** The parent's source time the first frame of `src` belongs to, so the frames stay on the footage they were made from whatever the trim. Default 0. */
   sourceIn?: Time;
-  /** Frames per second the frames were written at (the composition's). Default 30. */
+  /** Frames per second the frames of `src` were written at (the composition's). Default 30. */
   frameRate?: number;
   /** Feather: radius in px the edge falls off over. Default 0. */
   blur?: number;
   /**
-   * How strongly the mask limits the effect, 0–1. At 1 the effect stops at
-   * the mask's edge; lower lets that much of it through outside; 0 is no
-   * mask. Default 1.
+   * How strongly the mask cuts, 0–1. At 1 nothing outside it is left;
+   * lower lets that much through outside; 0 is no mask. Default 1.
    */
   opacity?: number;
   /** Covers what the picture does not instead. Default false. */
@@ -787,6 +792,8 @@ export type MaskProps = Pick<CompositeProps, "hidden"> & TrackChildren & {
    * either way. Default 0.25.
    */
   smoothing?: number;
+  /** The elements drawing the picture, and `<KeyframeTrack>` children. */
+  children?: SolidJSX.Element;
 };
 
 /**
@@ -921,12 +928,12 @@ export type ColorStopProps = ColorProps & OpacityProps & TrackChildren & {
 export type MediaPaintProps = PaintProps & MediaProps & FitProps & FrameRateProps & TrackChildren;
 
 export type VideoProps = CommonProps & MediaProps & FitProps & FrameRateProps & AudioTrackProps & {
-  /** Paint children, stacked over the media paint created by `src`; `<Stroke>`, `<Shadow>`, `<Effect>`, `<Animation>` and `<KeyframeTrack>` children. */
+  /** Paint children, stacked over the media paint created by `src`; `<Stroke>`, `<Shadow>`, `<Effect>`, `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children. */
     children?: SolidJSX.Element;
   };
 
 export type ImageProps = CommonProps & MediaProps & FitProps & FrameRateProps & {
-  /** Paint children, stacked over the media paint created by `src`; `<Stroke>`, `<Shadow>`, `<Effect>`, `<Animation>` and `<KeyframeTrack>` children. */
+  /** Paint children, stacked over the media paint created by `src`; `<Stroke>`, `<Shadow>`, `<Effect>`, `<ClipPath>`, `<Mask>`, `<Animation>` and `<KeyframeTrack>` children. */
     children?: SolidJSX.Element;
   };
 
@@ -1030,8 +1037,8 @@ export type TextProps = CommonProps & Partial<ColorProps> & FontProps & {
   leading?: number;
   /**
    * The text content, required; alongside it, `<TextRange>`, paint,
-   * `<Stroke>`, `<Shadow>`, `<Effect>`, `<Animation>` and `<KeyframeTrack>`
-   * children.
+   * `<Stroke>`, `<Shadow>`, `<Effect>`, `<ClipPath>`, `<Mask>`, `<Animation>`
+   * and `<KeyframeTrack>` children.
    */
   children: SolidJSX.Element;
 };

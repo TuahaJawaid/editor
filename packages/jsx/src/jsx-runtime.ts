@@ -25,6 +25,7 @@ import type {
   AudioProps,
   CaptionsProps,
   ColorStopProps,
+  ClipPathProps,
   EffectProps,
   MaskProps,
   LinearGradientPaintProps,
@@ -69,7 +70,7 @@ type HtmlElementTags = Omit<SolidJSX.HTMLElementTags, "canvas" | "audio" | "vide
 type ImgTag = Omit<SolidJSX.HTMLElementTags["img"], "src"> & { src?: string };
 
 // The shared names are re-declared below as unions with the composition props.
-type SvgElementTags = Omit<SolidJSX.SVGElementTags, "rect" | "ellipse" | "polygon" | "path" | "text" | "image">;
+type SvgElementTags = Omit<SolidJSX.SVGElementTags, "rect" | "ellipse" | "polygon" | "path" | "text" | "image" | "mask" | "clipPath">;
 
 export declare namespace JSX {
   // Solid's Element type keeps Solid's control flow (<For>, <Show>, …) and
@@ -107,7 +108,8 @@ export declare namespace JSX {
     stroke: StrokeProps & SourceProps;
     shadow: ShadowProps & SourceProps;
     effect: EffectProps & SourceProps;
-    mask: MaskProps & SourceProps;
+    clipPath: (ClipPathProps & SourceProps) | SolidJSX.SVGElementTags["clipPath"];
+    mask: (MaskProps & SourceProps) | SolidJSX.SVGElementTags["mask"];
     animation: AnimationProps & SourceProps;
     keyframeTrack: KeyframeTrackProps & SourceProps;
     keyframe: KeyframeProps & SourceProps;

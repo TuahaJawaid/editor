@@ -38,7 +38,7 @@ export function ProjectFolderCommands() {
   useCommand({
     id: "show-project-folder",
     title: isWindowsDesktop() ? "Show in Explorer" : "Show in Finder",
-    group: "Window",
+    group: "File",
     icon: "navigation.folder",
     keywords: ["reveal", "project folder", "files", "finder", "explorer"],
     available: () => Boolean(window.desktop && project.dir()),
@@ -63,7 +63,7 @@ function OpenInEditorCommand(props: { editor: EditorInfo }) {
   useCommand({
     id: `open-in-editor:${editor.id}`,
     title: `Open in ${editor.label}`,
-    group: "Window",
+    group: "File",
     icon: EDITOR_ICONS[editor.id],
     keywords: ["code editor", "project folder", "jsx", "source", editor.id],
     available: () => Boolean(project.dir()),

@@ -5,10 +5,12 @@
 import { createMemo, Show } from 'solid-js';
 import { useTag, useWorld } from '@diffusionstudio/koota-solid';
 import {
+  ClipPath,
   ColorStop,
   Effect,
   Expanded,
   Hovering,
+  Mask,
   Name,
   Paint,
   PaintType,
@@ -40,9 +42,10 @@ const PAINT_NAMES: Partial<Record<PaintType, string>> = {
 };
 
 /**
- * A row for one of a clip's parts — a fill, a stroke, a shadow, an effect —
- * which is here only so the keyframe rows under it have something to hang
- * from. It has no clip of its own on the canvas beside it.
+ * A row for one of a clip's parts — a fill, a stroke, a shadow, an effect, a
+ * clip path or mask — which is here only so the keyframe rows and layers
+ * under it have something to hang from. It has no clip of its own on the
+ * canvas beside it.
  */
 export function SubItemLayer(props: LayerRowProps) {
   const world = useWorld();
@@ -88,6 +91,11 @@ export function SubItemLayer(props: LayerRowProps) {
               <Icon name={props.expanded ? "chevron-down" : "chevron-right"} class="hover:text-foreground" />
             </Show>
           </button>
+          <Show when={entity().has(Mask)}>
+            <div class="size-4 shrink-0 flex items-center justify-center overflow-clip mr-0.5">
+              <Icon name="layer-mask-small" />
+            </div>
+          </Show>
           <span class="text-xs px-0.5 shrink-0 whitespace-nowrap text-foreground">
             {name()}
           </span>
@@ -105,6 +113,8 @@ function describe(entity: Entity): string {
   if (entity.has(Stroke)) return 'Stroke';
   if (entity.has(Shadow)) return 'Shadow';
   if (entity.has(ColorStop)) return 'Stop';
+  if (entity.has(ClipPath)) return 'Clip Path';
+  if (entity.has(Mask)) return 'Mask';
 
   if (entity.has(Paint)) {
     return PAINT_NAMES[entity.get(Paint)!.value as PaintType] ?? 'Fill';

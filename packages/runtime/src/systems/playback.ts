@@ -12,7 +12,7 @@ import { Not, Or } from 'koota';
 import { store } from '../world/store';
 import { PaintType } from '../constants';
 import {
-	ChildOf, Hidden, Culled, Dragging, AssetId, Cache, Mask,
+	ChildOf, Hidden, Culled, Dragging, AssetId, Mask,
 	Geometry, Group, AdjustmentLayer, Paint, Audio, Caption, Muted, Soloed,
 	Sequential, Transition, Playback, Workarea,
 	AudioPlayback, Computed,
@@ -20,7 +20,7 @@ import {
 	Mode, Silent, FrameRate, Time, AudioEngine, FramePromises, Tickers,
 	Root,
 } from '../traits';
-import { getParentNode } from '../queries/hierarchy';
+import { getMaskContainers, getParentNode } from '../queries/hierarchy';
 import { getIntrinsicPaint, getSourceWindow } from '../utils/time';
 import { clamp } from '../math/common';
 import { getTransitionWindow } from '../utils/transition';
@@ -222,15 +222,14 @@ function forwardImageDecoder(world: World, _scene: Entity, _entity: Entity, fill
 }
 
 /**
- * Seeks the frame sequences of the masks under the entity's effects: a
+ * Seeks the frame sequences of the masks cutting the entity or its effects: a
  * mask's frame `i` belongs to source frame `offset + i` of the clip, so the
  * seek is the clip's own source frame less the offset, at the rate the
  * sequence was written at (the composition's, authored as its frameRate).
  */
 function forwardMaskDecoders(world: World, scene: Entity, entity: Entity): void {
-	const cache = store(world, Cache);
-	const effects = cache.effects[entity.id()];
-	if (!effects?.length) return;
+	const containers = getMaskContainers(world, entity);
+	if (!containers.length) return;
 
 	const computed = store(world, Computed);
 	const maskStore = store(world, Mask);
@@ -248,19 +247,17 @@ function forwardMaskDecoders(world: World, scene: Entity, entity: Entity): void 
 	const source = getSourceWindow(entity);
 	const sourceFrame = clamp(localFrame, source.in, source.out);
 
-	for (const effect of effects) {
-		if (effect.has(Hidden)) continue;
-		for (const mask of cache.masks[effect.id()] ?? []) {
-			if (mask.has(Hidden) || !mask.has(AssetId)) continue;
+	for (const mask of containers) {
+		if (!mask.has(Mask) || mask.has(Hidden) || !mask.has(AssetId)) continue;
+		if (getParentNode(mask)?.has(Hidden)) continue;
 
-			const decoder = resolveVideoDecoder(world, mask);
-			if (!decoder) continue;
-			const frame = Math.max(0, sourceFrame - (maskStore.offset[mask.id()] ?? 0));
-			// Seek first: the editor keeps no promise list, and an optional call
-			// skips its arguments along with itself.
-			const seek = decoder.seekTo(frame, fps);
-			framePromises(world)?.push(seek ?? null);
-		}
+		const decoder = resolveVideoDecoder(world, mask);
+		if (!decoder) continue;
+		const frame = Math.max(0, sourceFrame - (maskStore.offset[mask.id()] ?? 0));
+		// Seek first: the editor keeps no promise list, and an optional call
+		// skips its arguments along with itself.
+		const seek = decoder.seekTo(frame, fps);
+		framePromises(world)?.push(seek ?? null);
 	}
 }
 
@@ -313,7 +310,7 @@ function forwardDecoders(world: World, scene: Entity, entity: Entity): void {
 			}
 		}
 
-		if (visualsEnabled && entity.has(Geometry)) {
+		if (visualsEnabled) {
 			forwardMaskDecoders(world, scene, entity);
 		}
 	}
@@ -328,6 +325,13 @@ function forwardDecoders(world: World, scene: Entity, entity: Entity): void {
 
 	for (const child of world.query(ChildOf(entity), Or(Geometry, Group, AdjustmentLayer), Not(Hidden))) {
 		forwardDecoders(world, scene, child);
+	}
+
+	for (const container of getMaskContainers(world, entity)) {
+		if (container.has(Hidden)) continue;
+		for (const child of world.query(ChildOf(container), Or(Geometry, Group, AdjustmentLayer), Not(Hidden))) {
+			forwardDecoders(world, scene, child);
+		}
 	}
 }
 
@@ -352,6 +356,16 @@ function updateVisibility(world: World, scene: Entity, entity: Entity): void {
 
 	for (const child of world.query(Or(Geometry, Group, AdjustmentLayer), ChildOf(entity))) {
 		updateVisibility(world, scene, child);
+	}
+
+	// A `<clipPath>` or `<mask>` runs on the clock of the node it cuts.
+	for (const container of getMaskContainers(world, entity)) {
+		const cid = container.id();
+		computed.localTime[cid] = computed.localTime[eid]!;
+		computed.visibility[cid] = computed.visibility[eid]!;
+		for (const child of world.query(Or(Geometry, Group, AdjustmentLayer), ChildOf(container))) {
+			updateVisibility(world, scene, child);
+		}
 	}
 }
 

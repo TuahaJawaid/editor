@@ -23,6 +23,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Icon } from "@/components/ui/icon";
 import { useCommands } from "@/context/commands";
 import { getDocumentEditor, useSelection } from "@/engine";
 
@@ -49,6 +50,7 @@ const CLIPBOARD = ["shortcut:copy", "shortcut:cut", "shortcut:paste", "shortcut:
 const STRUCTURE = [
   "shortcut:group",
   "shortcut:ungroup",
+  "shortcut:use-as-mask",
   "shortcut:wrap-in-scene",
   "shortcut:wrap-in-sequence",
   "shortcut:unwrap-sequence",
@@ -286,6 +288,14 @@ function MenuSections(props: MenuSectionsProps) {
         {command.title}
         <Show when={command.shortcut}>
           {(keys) => <ContextMenuShortcut>{keys().join("")}</ContextMenuShortcut>}
+        </Show>
+        <Show when={command.credits?.()}>
+          {(credits) => (
+            <ContextMenuShortcut class="flex items-center tracking-normal tabular-nums">
+              <Icon name="ai-credits-small" class="-my-1" />
+              {credits().toLocaleString()}
+            </ContextMenuShortcut>
+          )}
         </Show>
       </ContextMenuItem>
     );

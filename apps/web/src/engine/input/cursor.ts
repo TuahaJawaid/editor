@@ -96,7 +96,7 @@ const TOOL_CURSORS: Record<ToolType, { idle: CursorType; pressed?: CursorType }>
 	[ToolType.TEXT]: { idle: 'crosshair' },
 	[ToolType.TEXT_EDIT]: { idle: 'text' },
 	[ToolType.OBJECT_MASK]: { idle: 'crosshair' },
-	[ToolType.CLIP_PATH]: { idle: 'default' },
+	[ToolType.MASK]: { idle: 'default' },
 	[ToolType.LINEAR_GRADIENT]: { idle: 'default' },
 	[ToolType.RADIAL_GRADIENT]: { idle: 'default' },
 	[ToolType.ANGULAR_GRADIENT]: { idle: 'default' },

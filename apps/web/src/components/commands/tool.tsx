@@ -16,20 +16,20 @@ type ToolEntry = {
 
 /** The toolbar's tools, as the palette lists them. */
 const TOOLS: Partial<Record<ToolType, ToolEntry>> = {
-  [ToolType.MOVE]: { title: "Move objects", icon: "move", key: "V", keywords: ["select", "pointer", "cursor"] },
-  [ToolType.HAND]: { title: "Pan canvas", icon: "hand", key: "H", keywords: ["hand", "scroll"] },
+  [ToolType.MOVE]: { title: "Move", icon: "move", key: "V", keywords: ["select", "pointer", "cursor"] },
+  [ToolType.HAND]: { title: "Hand", icon: "hand", key: "H", keywords: ["pan", "scroll"] },
   [ToolType.OBJECT_MASK]: {
-    title: "Mask object",
+    title: "Object Mask",
     icon: "object-mask",
     key: "M",
     keywords: ["smart object mask", "segment", "track", "cutout", "sam", "rotoscope"],
   },
-  [ToolType.SCENE]: { title: "Create frame", icon: "scene-frame-small", key: "F", keywords: ["scene", "artboard"] },
-  [ToolType.RECT]: { title: "Draw rectangle", icon: "tool.rectangle", key: "R", keywords: ["shape", "square", "box"] },
-  [ToolType.ELLIPSE]: { title: "Draw ellipse", icon: "tool.ellipse", key: "O", keywords: ["shape", "circle", "oval"] },
-  [ToolType.POLYGON]: { title: "Draw polygon", icon: "tool.polygon", keywords: ["shape", "triangle", "star"] },
-  [ToolType.PEN]: { title: "Draw path", icon: "tool.pen", key: "P", keywords: ["pen", "vector", "bezier", "curve"] },
-  [ToolType.TEXT]: { title: "Add text", icon: "tool.text", key: "T", keywords: ["type", "title", "label"] },
+  [ToolType.SCENE]: { title: "Scene", icon: "scene-frame-small", key: "F", keywords: ["create", "frame", "artboard"] },
+  [ToolType.RECT]: { title: "Rectangle", icon: "tool.rectangle", key: "R", keywords: ["draw", "shape", "square", "box"] },
+  [ToolType.ELLIPSE]: { title: "Ellipse", icon: "tool.ellipse", key: "O", keywords: ["draw", "shape", "circle", "oval"] },
+  [ToolType.POLYGON]: { title: "Polygon", icon: "tool.polygon", keywords: ["draw", "shape", "triangle", "star"] },
+  [ToolType.PEN]: { title: "Pen", icon: "tool.pen", key: "P", keywords: ["draw", "path", "vector", "bezier", "curve"] },
+  [ToolType.TEXT]: { title: "Text", icon: "tool.text", key: "T", keywords: ["add", "type", "title", "label"] },
 };
 
 /** Picks `tool`, as its toolbar button does. */

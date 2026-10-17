@@ -18,7 +18,7 @@ import type { Accessor, Component, JSX, Owner } from "solid-js";
  * taken from the order commands register in, which depends on what mounted
  * first and changes as parts of the UI come and go.
  */
-export const SECTIONS = ["Media", "Generate", "Assets", "Export", "Timeline", "Object", "Tools", "Edit", "Window"] as const;
+export const SECTIONS = ["Media", "Generate", "Assets", "Export", "Timeline", "Object", "Tools", "File", "Edit", "View"] as const;
 
 export type Section = (typeof SECTIONS)[number];
 
@@ -111,6 +111,11 @@ export type Command = CommandAction & {
   order?: number;
   /** Whether it is offered right now; always, when left out. */
   available?(): boolean;
+  /**
+   * What carrying it out over the selection costs, in credits: shown beside
+   * it in menus. Undefined while that isn't known, and for a command that is free.
+   */
+  credits?(): number | undefined;
   /**
    * False keeps it out of the palette and its recents, for a command only a
    * menu or shortcut reaches, like the one that opens the palette itself.

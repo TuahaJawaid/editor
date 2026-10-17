@@ -22,7 +22,7 @@ export function RemoveSilenceCommand() {
     id: "remove-silence",
     title: "Remove silence",
     group: "Media",
-    icon: "remove-silence",
+    icon: "ai.remove-silences",
     keywords: ["silent parts", "pauses", "gaps", "jump cut", "trim", "dead air", "audio"],
     ready: () => targets().length > 0,
     run: () => void run(),

@@ -23,6 +23,7 @@ import type {
   AnimationProps,
   AudioProps,
   CaptionsProps,
+  ClipPathProps,
   ColorStopProps,
   EffectProps,
   EllipseProps,
@@ -116,6 +117,7 @@ export const ColorStop = hostElement<ColorStopProps>("ColorStop");
 export const Stroke = hostElement<StrokeProps>("Stroke");
 export const Shadow = hostElement<ShadowProps>("Shadow");
 export const Effect = hostElement<EffectProps>("Effect");
+export const ClipPath = hostElement<ClipPathProps>("ClipPath");
 export const Mask = hostElement<MaskProps>("Mask");
 export const Animation = hostElement<AnimationProps>("Animation");
 export const KeyframeTrack = hostElement<KeyframeTrackProps>("KeyframeTrack");

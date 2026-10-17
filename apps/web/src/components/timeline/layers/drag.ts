@@ -13,7 +13,7 @@
  * rect, depth and ancestor chain without the rows registering anything.
  */
 
-import { isGroupLike, isClipPath, isSequence } from '@diffusionstudio/runtime';
+import { isGroupLike, isSequence } from '@diffusionstudio/runtime';
 import { NESTED_INDENT_PX } from './config';
 
 import type { Accessor } from 'solid-js';
@@ -70,8 +70,6 @@ export type GapContext = {
   dragged: Entity;
   /** The dragged subtree: nothing in it may become the parent of the drop. */
   forbidden: Set<Entity>;
-  /** Clip paths stack apart from plain layers; anchors must stay in their bucket. */
-  draggedIsClipPath: boolean;
   containerRect: DOMRect;
   /** Client Y just below the last row of the whole list. */
   listBottom: number;
@@ -216,9 +214,7 @@ export function resolveGap(gapIndex: number, rows: FlatRow[], x: number, context
 
 /**
  * The document sibling to insert before: the nearest row above the gap at
- * the chosen depth. Restricted to the dragged layer's stacking bucket —
- * clip paths and plain layers render as separate runs, so an anchor from the
- * other bucket would land the row somewhere the line never was.
+ * the chosen depth.
  */
 function scanAnchor(
   rows: FlatRow[],
@@ -233,7 +229,7 @@ function scanAnchor(
     if (row.depth > depth) continue;
     if (row.parent !== parent) break;
     if (row.node.entity === context.dragged) continue;
-    if (isClipPath(row.node.entity) === context.draggedIsClipPath) return row.node.entity;
+    return row.node.entity;
   }
 
   return undefined;

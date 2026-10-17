@@ -6,12 +6,12 @@ import { Not, Or } from 'koota';
 
 import { store } from '../world/store';
 import {
-	ChildOf, Geometry, Group, Hidden, IsClipPath, Sequential, AdjustmentLayer,
+	ChildOf, Geometry, Group, Hidden, Sequential, AdjustmentLayer,
 	Culled, Flip, Computed, Cache, LocalTransform, WorldTransform,
 	WorldBounds, RenderSurface,
 	Root,
 } from '../traits';
-import { getParentNode } from '../queries/hierarchy';
+import { getMaskContainers, getParentNode } from '../queries/hierarchy';
 import { getViewMatrix } from '../queries/camera';
 import { entityPivot } from '../queries/interaction';
 
@@ -231,7 +231,7 @@ export function computeGroupBounds(world: World, entity: Entity): void {
 		let maxY = -Infinity;
 		let any = false;
 
-		for (const child of world.query(Or(Geometry, Group), ChildOf(entity), Not(Hidden), Not(IsClipPath))) {
+		for (const child of world.query(Or(Geometry, Group), ChildOf(entity), Not(Hidden))) {
 			const cid = child.id();
 			const mat: Mat2D = {
 				a: localStore.a[cid] ?? 1, b: localStore.b[cid] ?? 0,
@@ -332,11 +332,42 @@ function placeSubtree(world: World, entity: Entity, parentEntity: Entity | null,
 		placeSubtree(world, child, entity, childMode, local);
 	}
 
+	// The nodes under a `<clipPath>` or `<mask>` sit in the space of the node
+	// they cut: the container takes its matrix, and they are placed under it.
+	for (const container of getMaskContainers(world, entity)) {
+		holdTransform(world, container, entity);
+		for (const child of world.query(Or(Geometry, Group), ChildOf(container))) {
+			placeSubtree(world, child, container, childMode, local);
+		}
+	}
+
 	if (group) {
 		computeGroupBounds(world, entity);
 		computeWorldBounds(world, entity);
 		cullEntity(world, entity, mode);
 	}
+}
+
+/** Gives `container` the world matrix of `holder` and an identity local one. */
+function holdTransform(world: World, container: Entity, holder: Entity): void {
+	const worldStore = store(world, WorldTransform);
+	const localStore = store(world, LocalTransform);
+	const cid = container.id();
+	const hid = holder.id();
+
+	localStore.a[cid] = 1;
+	localStore.b[cid] = 0;
+	localStore.c[cid] = 0;
+	localStore.d[cid] = 1;
+	localStore.e[cid] = 0;
+	localStore.f[cid] = 0;
+
+	worldStore.a[cid] = worldStore.a[hid];
+	worldStore.b[cid] = worldStore.b[hid];
+	worldStore.c[cid] = worldStore.c[hid];
+	worldStore.d[cid] = worldStore.d[hid];
+	worldStore.e[cid] = worldStore.e[hid];
+	worldStore.f[cid] = worldStore.f[hid];
 }
 
 /**

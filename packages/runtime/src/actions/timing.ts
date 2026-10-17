@@ -11,10 +11,10 @@ import { DEFAULT_DURATION_FRAMES } from '../constants';
 import {
 	Geometry, Group, AdjustmentLayer, Paint, Caption, Cache, Computed,
 	Delay, Trim, PlaybackRate, CaptionDecoderHandle, AssetId, FrameRate,
-	FramePromises,
+	FramePromises, ClipPath, Mask, Effect,
 } from '../traits';
 import { isGroupLike } from '../queries/predicates';
-import { getParentNode } from '../queries/hierarchy';
+import { getMaskContainers, getParentNode } from '../queries/hierarchy';
 import { findAssetDuration, getSourceFrameAt, isPaintEntity, secondsToFrames } from '../utils/time';
 import { getAsset } from './assets';
 import { getTranscriptDuration, primeTranscriptDuration } from '../media/caption/utils';
@@ -194,10 +194,31 @@ export function propagateTimeRangeDown(world: World, entity: Entity, ignore?: Ig
 	for (const child of entity.get(Cache)?.children ?? []) {
 		propagateTimeRangeDown(world, child);
 	}
-	for (const clipPath of entity.get(Cache)?.clipPaths ?? []) {
-		propagateTimeRangeDown(world, clipPath);
-	}
+	placeMaskedTime(world, entity);
 	recomputeEntityTimeRange(world, entity, ignore);
+}
+
+/**
+ * Places the nodes under `node`'s `<clipPath>`s and `<mask>`s in its time:
+ * each container takes `node`'s clock, so the nodes under it, which measure
+ * against their parent, run on the timeline of the node they cut.
+ */
+function placeMaskedTime(world: World, node: Entity): void {
+	const computed = store(world, Computed);
+	const nid = node.id();
+
+	for (const container of getMaskContainers(world, node)) {
+		const cid = container.id();
+		computed.origin[cid] = computed.origin[nid] ?? 0;
+		computed.playbackRate[cid] = computed.playbackRate[nid] || 1;
+		computed.start[cid] = computed.start[nid] ?? 0;
+		computed.end[cid] = computed.end[nid] ?? 0;
+		computed.duration[cid] = computed.duration[nid] ?? 0;
+
+		for (const child of container.get(Cache)?.children ?? []) {
+			propagateTimeRangeDown(world, child);
+		}
+	}
 }
 
 /**
@@ -331,6 +352,15 @@ export function reactToChildAttached(world: World, child: Entity) {
 	if (child.has(Geometry) || child.has(Group) || child.has(AdjustmentLayer)) {
 		propagateTimeRangeDown(world, child);
 		bubbleTimeRangeUp(world, child);
+		return;
+	}
+
+	// JSX attaches bottom-up: a container meets its holder (or an effect
+	// carrying masks meets its node) after its nodes were placed against it.
+	if (child.has(ClipPath) || child.has(Mask) || child.has(Effect)) {
+		let holder = getParentNode(child);
+		if (holder?.has(Effect)) holder = getParentNode(holder);
+		if (holder !== null) placeMaskedTime(world, holder);
 		return;
 	}
 

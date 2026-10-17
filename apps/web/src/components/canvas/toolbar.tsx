@@ -17,11 +17,11 @@ import {
 import { PromptInput } from "../genai/prompt-input";
 import { CommandBar } from "../commands";
 import { ObjectMaskBar } from "./object-mask-bar";
-import { ClipPathBar } from "./clip-path-bar";
+import { MaskBar } from "./mask-bar";
 import { For, Match, Show, Switch, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { Tool, ToolType } from "@diffusionstudio/runtime";
 import { useWorld } from "@diffusionstudio/koota-solid";
-import { cancelClipPath, cancelObjectMask, clearClipPathTarget, useTool } from "@/engine";
+import { cancelMask, cancelObjectMask, clearMaskTarget, useTool } from "@/engine";
 import { usePromptInput } from "@/context/prompt-input";
 import { useCommands } from "@/context/commands";
 import { TOOLBAR_SLOTS, useLayout } from "@/context/layout";
@@ -69,8 +69,8 @@ export function Toolbar() {
   });
 
   createEffect(() => {
-    if (selectedTool() !== ToolType.CLIP_PATH) {
-      clearClipPathTarget();
+    if (selectedTool() !== ToolType.MASK) {
+      clearMaskTarget();
     }
   });
 
@@ -81,11 +81,11 @@ export function Toolbar() {
     if (!command) return;
     setPromptInputOpen(false);
     if (selectedTool() === ToolType.OBJECT_MASK) cancelObjectMask(world);
-    if (selectedTool() === ToolType.CLIP_PATH) cancelClipPath(world);
+    if (selectedTool() === ToolType.MASK) cancelMask(world);
   }));
 
   createEffect(on([promptInputOpen, selectedTool], ([open, tool]) => {
-    if (open || tool === ToolType.OBJECT_MASK || tool === ToolType.CLIP_PATH) commands.close();
+    if (open || tool === ToolType.OBJECT_MASK || tool === ToolType.MASK) commands.close();
   }));
 
   const handleToolChange = (tool: ToolType) => {
@@ -182,8 +182,8 @@ export function Toolbar() {
           <Match when={selectedTool() === ToolType.OBJECT_MASK}>
             <ObjectMaskBar />
           </Match>
-          <Match when={selectedTool() === ToolType.CLIP_PATH}>
-            <ClipPathBar />
+          <Match when={selectedTool() === ToolType.MASK}>
+            <MaskBar />
           </Match>
         </Switch>
       </Show>
@@ -272,7 +272,7 @@ export function Toolbar() {
           >
             <Icon name="frame" class="size-5" />
           </TooltipTrigger>
-          <TooltipContent shortcut="F">Frame</TooltipContent>
+          <TooltipContent shortcut="F">Scene</TooltipContent>
         </Tooltip>
         <div class="flex gap-1">
           <Tooltip>

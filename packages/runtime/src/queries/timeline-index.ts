@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {
-	ChildOf, Keyframe, KeyframeTrack, IsClipPath, Geometry, Group,
+	ChildOf, Keyframe, KeyframeTrack, Geometry, Group,
 	AdjustmentLayer, Expanded,
 } from '../traits';
 import { isSequence } from './predicates';
@@ -31,7 +31,6 @@ export function buildTimelineLayers(world: World, parent: Entity): TimelineNode[
 
 	const tracks: Entity[] = [];
 	const geoms: Entity[] = [];
-	const clipPaths: Entity[] = [];
 	const subitems: Entity[] = [];
 
 	for (const child of world.query(ChildOf(parent))) {
@@ -40,8 +39,6 @@ export function buildTimelineLayers(world: World, parent: Entity): TimelineNode[
 
 		if (child.has(KeyframeTrack)) {
 			tracks.push(child);
-		} else if (child.has(IsClipPath)) {
-			clipPaths.push(child);
 		} else if (child.has(Geometry) || child.has(Group) || child.has(AdjustmentLayer)) {
 			geoms.push(child);
 		} else {
@@ -51,7 +48,6 @@ export function buildTimelineLayers(world: World, parent: Entity): TimelineNode[
 
 	tracks.sort(sortByItemIndex).reverse();
 	geoms.sort(sortByItemIndex).reverse();
-	clipPaths.sort(sortByItemIndex).reverse();
 	subitems.sort(sortByItemIndex).reverse();
 
 	const nodes: TimelineNode[] = [];
@@ -75,10 +71,6 @@ export function buildTimelineLayers(world: World, parent: Entity): TimelineNode[
 
 	for (const geom of geoms) {
 		nodes.push(buildNode(world, geom, 'geometry'));
-	}
-
-	for (const clipPath of clipPaths) {
-		nodes.push(buildNode(world, clipPath, 'geometry'));
 	}
 
 	return nodes;
@@ -119,7 +111,6 @@ function isExpandable(world: World, parent: Entity): boolean {
 		if (child.has(Keyframe)) continue;
 		if (sequence && !hasKeyframes(world, child)) continue;
 		if (
-			child.has(IsClipPath) ||
 			child.has(Geometry) ||
 			child.has(Group) ||
 			child.has(AdjustmentLayer) ||
