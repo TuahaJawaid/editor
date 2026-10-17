@@ -49,6 +49,7 @@ const CLIPBOARD = ["shortcut:copy", "shortcut:cut", "shortcut:paste", "shortcut:
 const STRUCTURE = [
   "shortcut:group",
   "shortcut:ungroup",
+  "shortcut:use-as-mask",
   "shortcut:wrap-in-scene",
   "shortcut:wrap-in-sequence",
   "shortcut:unwrap-sequence",

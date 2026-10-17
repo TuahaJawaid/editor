@@ -13,6 +13,7 @@ import {
 	entityPivot,
 	entityOffset,
 	entityWorldMat,
+	getEntityChildren,
 	getEntityTree,
 	getParentEntity,
 	getSelection,
@@ -92,19 +93,60 @@ export function applyMasks(world: World): void {
 	const picks = getMaskPicks(world);
 	if (!target || picks.length === 0) return;
 
+	maskWith(world, target, picks);
+	leaveMaskTool(world, target);
+}
+
+/**
+ * The selection as "Use as mask" reads it, the way Figma does: of two
+ * selected layers side by side, the one behind is the mask and the one in
+ * front is what it masks. Null for any other selection, or when the one
+ * behind cannot be a mask (see `canMaskWith`).
+ */
+export function getSelectionMask(world: World): { mask: Entity; target: Entity } | null {
+	const selected = new Set(getSelection(world));
+	const first = [...selected][0];
+	if (!first || selected.size !== 2) return null;
+
+	const parent = getParentEntity(first);
+	if (!parent || isMaskContainer(parent)) return null;
+
+	// Back to front, as the file lists them.
+	const [mask, target] = getEntityChildren(world, parent).filter((entity) => selected.has(entity));
+	if (!mask || !target || !canMaskWith(world, target, mask)) return null;
+	return { mask, target };
+}
+
+/**
+ * "Use as mask": of two selected layers, the one behind becomes a `<mask>`
+ * of the one in front, moved into it where it stands. One undo step; the
+ * masked layer ends up selected.
+ */
+export function applySelectionAsMask(world: World): void {
+	const selection = getSelectionMask(world);
+	if (!selection) return;
+
+	if (maskWith(world, selection.target, [selection.mask])) {
+		getDocumentEditor(world).select(selection.target);
+	}
+}
+
+/**
+ * Gives `target` a new `<mask>` holding `layers`, each moved into it where it
+ * stands (see `applyMasks`). Returns the mask, or null when none of them
+ * could be moved.
+ */
+function maskWith(world: World, target: Entity, layers: Entity[]): Entity | null {
 	const editor = getDocumentEditor(world);
 	const computed = store(world, Computed);
 	const flip = store(world, Flip);
 	const targetInverse = invert2D(entityWorldMat(world, target));
 
 	const [mask] = editor.insertElement(target, () => <MaskElement />);
-	if (!mask) {
-		leaveMaskTool(world, target);
-		return;
-	}
+	if (!mask) return null;
 
 	let moved = 0;
-	for (const layer of picks) {
+	for (const layer of layers) {
 		const eid = layer.id();
 		const width = computed.width[eid] ?? 0;
 		const height = computed.height[eid] ?? 0;
@@ -143,9 +185,11 @@ export function applyMasks(world: World): void {
 	}
 
 	// An empty mask would show nothing of the target; it is not worth the file.
-	if (moved === 0) editor.remove(mask);
-
-	leaveMaskTool(world, target);
+	if (moved === 0) {
+		editor.remove(mask);
+		return null;
+	}
+	return mask;
 }
 
 /** Puts the tool down without applying anything; the selection goes back to the target. */

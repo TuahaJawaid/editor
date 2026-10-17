@@ -20,12 +20,14 @@ import {
 import { useCommand } from "@/context/commands";
 import { clipboardHasMedia } from "@/lib/clipboard";
 import {
+  applySelectionAsMask,
   copySelection,
   cutSelection,
   deleteSelection,
   duplicateSelection,
   getDocumentEditor,
   getEditHistory,
+  getSelectionMask,
   groupSelection,
   pasteSelection,
   redoEdit,
@@ -56,6 +58,7 @@ type ShortcutState = {
   history: EditHistory;
   editor: DocumentEditor;
   scene: Entity | null;
+  world: World;
 };
 
 type Shortcut = {
@@ -103,6 +106,16 @@ const SHORTCUTS: Shortcut[] = [
     keys: ["⇧", "⌘", "G"],
     run: ungroupSelection,
     available: ({ nodes }) => nodes.some((node) => isGroupLike(node) || isSequence(node)),
+  },
+  {
+    id: "use-as-mask",
+    title: "Use as mask",
+    group: "Object",
+    icon: "mask-small",
+    keys: ["⌃", "⌘", "M"],
+    keywords: ["matte", "clip"],
+    run: applySelectionAsMask,
+    available: ({ nodes, world }) => nodes.length === 2 && getSelectionMask(world) !== null,
   },
   {
     id: "wrap-in-scene",
@@ -378,7 +391,7 @@ export function ShortcutCommands() {
   const history = getEditHistory(world);
   const editor = getDocumentEditor(world);
 
-  const state = (): ShortcutState => ({ nodes: nodes(), history, editor, scene: scene() });
+  const state = (): ShortcutState => ({ nodes: nodes(), history, editor, scene: scene(), world });
 
   return <For each={SHORTCUTS}>{(shortcut) => <ShortcutCommand shortcut={shortcut} state={state} />}</For>;
 }

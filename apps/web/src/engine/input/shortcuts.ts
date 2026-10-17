@@ -39,7 +39,7 @@ import { Not, Or } from 'koota';
 import { claimClipboard, hasMedia, readClipboardMedia } from '@/lib/clipboard';
 import { pasteClipboardMedia } from '../asset-actions';
 import { zoomBy, zoomTo, zoomToFit, zoomToSelection } from '../camera';
-import { applyMasks, cancelMask } from '../mask';
+import { applyMasks, applySelectionAsMask, cancelMask } from '../mask';
 import { getDocumentEditor } from '../editor';
 import { groupSelection, ungroupSelection, unwrapSequenceSelection, wrapSelectionInScene, wrapSelectionInSequence } from '../group';
 import { getEditHistory } from '../history';
@@ -536,6 +536,7 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['d', 'mod', '!shift'], action: duplicateSelection },
 	{ keys: ['g', 'mod', '!shift'], action: groupSelection },
 	{ keys: ['g', 'mod', 'shift'], action: ungroupSelection },
+	{ keys: ['m', 'meta', 'control'], action: applySelectionAsMask },
 	{ keys: ['enter', 'mod', '!shift', '!alt'], action: wrapSelectionInScene },
 	{ keys: ['enter', 'mod', 'alt', '!shift'], action: wrapSelectionInSequence },
 	{ keys: ['enter', 'mod', 'alt', 'shift'], action: unwrapSequenceSelection },
