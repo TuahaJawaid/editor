@@ -272,7 +272,7 @@ export function Toolbar() {
           >
             <Icon name="frame" class="size-5" />
           </TooltipTrigger>
-          <TooltipContent shortcut="F">Frame</TooltipContent>
+          <TooltipContent shortcut="F">Scene</TooltipContent>
         </Tooltip>
         <div class="flex gap-1">
           <Tooltip>
