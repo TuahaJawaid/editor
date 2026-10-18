@@ -6,10 +6,12 @@ import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const appEvents = new EventEmitter();
+const updaterEvents = new EventEmitter();
 const dock = { show: vi.fn(async () => { }), hide: vi.fn() };
 
 vi.mock("electron", () => ({
   app: { on: (event: string, listener: () => void) => appEvents.on(event, listener), dock, focus: () => { } },
+  autoUpdater: { on: (event: string, listener: () => void) => updaterEvents.on(event, listener) },
 }));
 
 const { WindowHost } = await import("./window-host");
@@ -45,6 +47,7 @@ let host: InstanceType<typeof WindowHost>;
 beforeEach(() => {
   vi.useFakeTimers();
   appEvents.removeAllListeners();
+  updaterEvents.removeAllListeners();
   created = [];
   host = new WindowHost({
     create: () => {
@@ -131,5 +134,12 @@ describe("WindowHost", () => {
     created[0]!.close();
     expect(created[0]!.isDestroyed()).toBe(true);
     expect(host.current()).toBeNull();
+  });
+
+  it("lets the window close when an update quits the app to install", async () => {
+    await host.show();
+    updaterEvents.emit("before-quit-for-update");
+    created[0]!.close();
+    expect(created[0]!.isDestroyed()).toBe(true);
   });
 });

@@ -12,7 +12,7 @@
 // the Dock icon (macOS) follows whether the window is showing, and closing
 // the window hides it rather than ending what the renderer is doing.
 
-import { app } from "electron";
+import { app, autoUpdater } from "electron";
 
 import type { BrowserWindow } from "electron";
 
@@ -45,6 +45,11 @@ export class WindowHost {
   constructor(deps: WindowHostDeps) {
     this.deps = deps;
     app.on("before-quit", () => {
+      this.quitting = true;
+    });
+    // quitAndInstall closes the windows before `before-quit`; a close turned
+    // into a hide there would leave the app running and the update unapplied.
+    autoUpdater.on("before-quit-for-update", () => {
       this.quitting = true;
     });
   }

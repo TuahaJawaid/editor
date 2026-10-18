@@ -8,6 +8,7 @@ import { existsSync } from "node:fs";
 import { mkdir, open, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type { FileHandle } from "node:fs/promises";
+import type { IUpdateInfo } from "update-electron-app";
 import { makeUserNotifier, updateElectronApp } from "update-electron-app";
 import { tempPathFor } from "./atomic";
 import { DapiServer } from "./dapi/server";
@@ -111,14 +112,25 @@ function setColorMode(mode: "dark" | "light") {
   mainWindow.setTitleBarOverlay({ ...WINDOWS_OVERLAY_COLORS[mode], height: WINDOWS_OVERLAY_HEIGHT });
 }
 
+// A downloaded update is offered while the user has the window out; one that
+// lands while the app runs in the background waits for the next show, since
+// the app rarely quits on its own to apply it.
+const notifyUser = makeUserNotifier();
+let pendingUpdate: IUpdateInfo | null = null;
+
+function offerUpdate() {
+  if (!pendingUpdate || !windows.visible()) return;
+  const info = pendingUpdate;
+  pendingUpdate = null;
+  notifyUser(info);
+}
+
 if (app.isPackaged && !squirrelLaunch) {
-  const notifyUser = makeUserNotifier();
   updateElectronApp({
     repo: "diffusionstudio/editor",
     onNotifyUser: function (info) {
-      if (windows.visible()) {
-        notifyUser(info);
-      }
+      pendingUpdate = info;
+      offerUpdate();
     },
   });
 }
@@ -131,7 +143,10 @@ let lastProject: string | null = null;
 const windows = new WindowHost({
   create: createWindow,
   idleMs: WINDOW_IDLE_MS,
-  onChange: () => tray.refresh(),
+  onChange: () => {
+    tray.refresh();
+    offerUpdate();
+  },
 });
 
 const tray = new AppTray({
